@@ -102,6 +102,7 @@ class AgentOrchestrator:
 
         # Fetch profile context for global constraints
         profile = self.db.query(Profile).first()
+        profile_context = profile.company_context if profile else ""
         llm_model = profile.llm_model if profile else None
         llm_api_key = profile.llm_api_key if profile else None
 
@@ -116,6 +117,7 @@ class AgentOrchestrator:
         refined_data = await self.llm.refine_draft(
             current_state, 
             feedback,
+            profile_context=profile_context,
             model_override=llm_model,
             api_key_override=llm_api_key
         )

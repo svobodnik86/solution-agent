@@ -25,7 +25,8 @@ class LLMManager:
         You are an expert Solution Architect. 
         Your goal is to parse the provided context and generate a structured architectural snapshot.
         
-        GLOBAL ARCHITECT CONSTRAINTS & STANDARDS:
+        GLOBAL ARCHITECT CONSTRAINTS & STANDARDS (MANDATORY):
+        The following standards MUST be applied to the TO-BE architecture and summary. If they conflict with the current state, prioritized these standards:
         {profile_context}
         
         You MUST return valid JSON matching this schema:
@@ -70,6 +71,7 @@ class LLMManager:
         self, 
         current_state: Dict[str, Any], 
         feedback: str,
+        profile_context: str = "",
         model_override: str = None,
         api_key_override: str = None
     ) -> Dict[str, Any]:
@@ -79,13 +81,17 @@ class LLMManager:
         model = model_override or self.default_model
         prompt = f"""
         You are an expert Solution Architect. 
+        GLOBAL ARCHITECT CONSTRAINTS & STANDARDS (MANDATORY):
+        The following standards MUST be maintained in the refined state:
+        {profile_context}
+
         Current Architectural State:
         {json.dumps(current_state, indent=2)}
 
         User Feedback/Clarification:
         {feedback}
 
-        Update the architectural state based on this feedback. 
+        Update the architectural state based on this feedback while STRICTLY adhering to the GLOBAL ARCHITECT CONSTRAINTS. 
         Return the updated JSON object with the same keys: as_is_diagram, to_be_diagram, architecture_summary, key_questions, pending_tasks.
         """
 
