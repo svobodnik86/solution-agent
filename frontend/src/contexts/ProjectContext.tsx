@@ -12,6 +12,7 @@ interface ProjectContextType {
   activeTimestamp: Timestamp | null
   setActiveTimestamp: (t: Timestamp | null) => void
   loading: boolean
+  profile: any | null
   refreshData: (projectId?: number) => Promise<void>
   switchProject: (projectId: number) => Promise<void>
 }
@@ -23,25 +24,55 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<Project | null>(null)
   const [timestamps, setTimestamps] = useState<Timestamp[]>([])
   const [activeTimestamp, setActiveTimestamp] = useState<Timestamp | null>(null)
+  const [profile, setProfileState] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   const refreshData = async (projectId?: number) => {
+    console.log("ProjectContext: refreshData called with projectId:", projectId)
     try {
       setLoading(true)
-      const allProjects = await api.getProjects()
+      
+      // Fetch profile and projects in parallel
+      const [allProjects, allProfiles] = await Promise.all([
+        api.getProjects(),
+        api.getProfiles()
+      ])
+      
       setProjects(allProjects)
+      if (allProfiles.length > 0) {
+        setProfileState(allProfiles[0])
+      }
 
       const targetId = projectId || project?.id || (allProjects.length > 0 ? allProjects[0].id : null)
+      console.log("ProjectContext: targetId determined as:", targetId)
       
       if (targetId) {
-        const fullProject = await api.getProject(targetId)
-        setProject(fullProject)
-        setTimestamps(fullProject.timestamps)
-        // If switching or initializing, pick the latest timestamp
-        if (fullProject.timestamps.length > 0) {
-          setActiveTimestamp(fullProject.timestamps[fullProject.timestamps.length - 1])
-        } else {
+        try {
+          const fullProject = await api.getProject(targetId)
+          console.log("ProjectContext: fetched full project:", fullProject.name)
+          
+          // Reset timestamp related states before setting new ones to prevent data bleed
           setActiveTimestamp(null)
+          
+          setProject(fullProject)
+          setTimestamps(fullProject.timestamps || [])
+          
+          // Pick the latest timestamp if switching or initializing
+          if (fullProject.timestamps && fullProject.timestamps.length > 0) {
+            setActiveTimestamp(fullProject.timestamps[fullProject.timestamps.length - 1])
+          } else {
+            setActiveTimestamp(null)
+          }
+        } catch (getProjErr) {
+          console.error("Failed to fetch full project:", getProjErr)
+          // Fallback to first project if the targeted one failed
+          if (projectId && allProjects.length > 0 && allProjects[0].id !== projectId) {
+             console.log("Retry with first available project")
+             const fallbackProject = await api.getProject(allProjects[0].id)
+             setProject(fallbackProject)
+             setTimestamps(fallbackProject.timestamps || [])
+             setActiveTimestamp(fallbackProject.timestamps?.[fallbackProject.timestamps.length - 1] || null)
+          }
         }
       }
     } catch (err) {
@@ -65,7 +96,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       project, setProject, 
       timestamps, setTimestamps, 
       activeTimestamp, setActiveTimestamp, 
-      loading, refreshData,
+      loading, profile,
+      refreshData,
       switchProject
     }}>
       {children}

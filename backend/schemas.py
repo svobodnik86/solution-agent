@@ -22,6 +22,7 @@ class TimestampBase(BaseModel):
     architecture_summary: Optional[str] = None
     key_questions: Optional[List[str]] = None
     pending_tasks: Optional[List[Any]] = None
+    refinement_history: Optional[List[Dict[str, str]]] = None
 
 class Timestamp(TimestampBase):
     model_config = ConfigDict(from_attributes=True)

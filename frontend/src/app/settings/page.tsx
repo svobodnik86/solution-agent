@@ -181,20 +181,48 @@ export default function SettingsPage() {
 
           <section className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-4">Upcoming Integrations</h3>
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col items-center text-center">
-                   <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3">
-                      <Mail className="text-red-500" size={20} />
+                   <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 text-red-500">
+                      <Mail size={20} />
                    </div>
                    <span className="text-sm font-bold text-slate-900">Gmail</span>
                    <span className="text-[10px] text-slate-400 mt-1 italic">OAuth Ingestion</span>
                 </div>
                 <div className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col items-center text-center">
-                   <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3">
-                      <FileCode className="text-blue-500" size={20} />
+                   <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 text-blue-500">
+                      <FileCode size={20} />
                    </div>
                    <span className="text-sm font-bold text-slate-900">Local Files</span>
                    <span className="text-[10px] text-green-600 mt-1 font-bold uppercase tracking-tighter">Active</span>
+                </div>
+                <div className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col items-center text-center">
+                   <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 text-purple-600">
+                      <Globe size={20} />
+                   </div>
+                   <span className="text-sm font-bold text-slate-900">Slack</span>
+                   <span className="text-[10px] text-slate-400 mt-1 italic">Webhooks</span>
+                </div>
+                <div className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col items-center text-center">
+                   <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 text-blue-700">
+                      <Shield size={20} />
+                   </div>
+                   <span className="text-sm font-bold text-slate-900">MS Teams</span>
+                   <span className="text-[10px] text-slate-400 mt-1 italic">OAuth Ingestion</span>
+                </div>
+                <div className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col items-center text-center">
+                   <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 text-blue-400">
+                      <Globe size={20} />
+                   </div>
+                   <span className="text-sm font-bold text-slate-900">Confluence</span>
+                   <span className="text-[10px] text-slate-400 mt-1 italic">API Token</span>
+                </div>
+                <div className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col items-center text-center">
+                   <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 text-green-600">
+                      <Globe size={20} />
+                   </div>
+                   <span className="text-sm font-bold text-slate-900">GDrive / SP</span>
+                   <span className="text-[10px] text-slate-400 mt-1 italic">OAuth Ingestion</span>
                 </div>
              </div>
           </section>

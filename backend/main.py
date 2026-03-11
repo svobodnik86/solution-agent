@@ -26,8 +26,8 @@ def on_startup():
     try:
         if not db.query(models.Profile).first():
             default_profile = models.Profile(
-                name="Default Profile", 
-                company_context="Focus on cloud-native, scalable solutions with microservices architecture.",
+                name="Ondřej Svoboda", 
+                company_context="Scientific Data Architect. Focus on cloud-native Research & Development solutions, data orchestration, and lab instrument integration with a preference for standardized vocabularies like CENTree.",
                 llm_model="gemini/gemini-1.5-flash"
             )
             db.add(default_profile)
@@ -37,7 +37,7 @@ def on_startup():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "version": "0.1.0"}
+    return {"status": "healthy", "version": "0.2.0"}
 
 # --- Profile Routes ---
 
@@ -97,7 +97,11 @@ async def test_profile_connection(request: schemas.TestConnectionRequest):
 
 @app.post("/projects", response_model=schemas.Project)
 def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
-    db_project = models.Project(name=project.name, description=project.description)
+    db_project = models.Project(
+        name=project.name, 
+        description=project.description,
+        working_notes=project.working_notes
+    )
     db.add(db_project)
     try:
         db.commit()

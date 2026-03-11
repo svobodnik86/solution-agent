@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-03-11
+
+### Added
+- **Diagram Zoom (Inspection View)**: High-resolution modal for sequence diagrams with persistent headers and "Full Width" scaling.
+- **Project Isolation**: Strict partitioning of context (notes, history, RAG) per project_id.
+- **Automated Testing**: Integrated `pytest` suite for backend API regression prevention.
+- **Personalized Profile**: Dynamic Sidebar displaying user identity (Ondřej Svoboda) and role (Scientific Data Architect).
+- **Expanded Integrations**: Added Slack, Microsoft Teams, Confluence, Google Drive, and SharePoint to roadmap.
+
+### Fixed
+- **Project Switching**: Resolved a regression in the frontend state machine that caused data desync between projects.
+- **Diagram Readability**: Fixed the zoom implementation to ensure headers remain visible during inspection.
+
 ## [0.1.1] - 2026-03-11
 
 ### Added

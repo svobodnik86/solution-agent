@@ -114,13 +114,40 @@ class AgentOrchestrator:
             "pending_tasks": ts.pending_tasks
         }
 
+        # Fetch project for manual notes
+        project = self.db.query(Project).filter(Project.id == ts.project_id).first()
+        working_notes = project.working_notes if project else ""
+
+        # Build refinement history context
+        history = ts.refinement_history or []
+        history_str = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in history])
+
+        # Strengthen prompt with notes and history
+        enriched_feedback = f"""
+        MANUAL NOTES & CONSTRAINTS:
+        {working_notes}
+
+        PREVIOUS REFINEMENT HISTORY:
+        {history_str}
+
+        NEW USER FEEDBACK:
+        {feedback}
+        """
+
         refined_data = await self.llm.refine_draft(
             current_state, 
-            feedback,
+            enriched_feedback,
             profile_context=profile_context,
             model_override=llm_model,
             api_key_override=llm_api_key
         )
+
+        # Update history
+        new_history = history + [
+            {"role": "user", "content": feedback},
+            {"role": "assistant", "content": "Updated the architectural draft based on your feedback."}
+        ]
+        ts.refinement_history = new_history
 
         ts.as_is_diagram = refined_data.get("as_is_diagram", ts.as_is_diagram)
         ts.to_be_diagram = refined_data.get("to_be_diagram", ts.to_be_diagram)

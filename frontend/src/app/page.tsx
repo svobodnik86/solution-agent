@@ -9,13 +9,14 @@ import { useProject } from '@/contexts/ProjectContext'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'diagrams' | 'summary' | 'workspace'>('diagrams')
-  const { project, timestamps, setTimestamps, activeTimestamp, setActiveTimestamp, loading } = useProject()
+  const { project, timestamps, setTimestamps, activeTimestamp, setActiveTimestamp, loading, setProject } = useProject()
   
   const [generating, setGenerating] = useState(false)
   const [refining, setRefining] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [workspaceNotes, setWorkspaceNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
   const [stagedFiles, setStagedFiles] = useState<{name: string, status: 'ingesting' | 'ready' | 'error'}[]>([])
   const [analysisError, setAnalysisError] = useState<string | null>(null)
 
@@ -29,8 +30,12 @@ export default function DashboardPage() {
   const handleSaveNotes = async () => {
     if (!project) return
     setSavingNotes(true)
+    setShowSaved(false)
     try {
-      await api.updateProject(project.id, { working_notes: workspaceNotes })
+      const updatedProject = await api.updateProject(project.id, { working_notes: workspaceNotes })
+      setProject({ ...project, ...updatedProject })
+      setShowSaved(true)
+      setTimeout(() => setShowSaved(false), 3000)
     } catch (err) {
       console.error("Save notes failed:", err)
     } finally {
@@ -348,10 +353,21 @@ export default function DashboardPage() {
                         <button 
                           onClick={handleSaveNotes}
                           disabled={savingNotes || !project}
-                          className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider bg-white border border-slate-200 px-3 py-1 rounded shadow-sm disabled:opacity-50 transition-all flex items-center gap-1.5"
+                          className={cn(
+                            "text-[10px] font-bold uppercase tracking-wider border px-3 py-1 rounded shadow-sm disabled:opacity-50 transition-all flex items-center gap-1.5",
+                            showSaved 
+                              ? "text-green-600 bg-green-50 border-green-200" 
+                              : "text-blue-600 bg-white border-slate-200 hover:text-blue-700"
+                          )}
                         >
-                          {savingNotes ? <Loader2 size={10} className="animate-spin" /> : <LayoutDashboard size={10} />}
-                          Save Notes
+                          {savingNotes ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : showSaved ? (
+                            <LayoutDashboard size={10} />
+                          ) : (
+                            <LayoutDashboard size={10} />
+                          )}
+                          {savingNotes ? "Saving..." : showSaved ? "Saved!" : "Save Notes"}
                         </button>
                       </div>
                       <textarea 
@@ -368,11 +384,33 @@ export default function DashboardPage() {
                   <h3 className="font-semibold text-slate-900">Refinement Chat</h3>
                 </div>
                 <div className="flex-1 p-4 overflow-auto space-y-4">
-                  <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-700 max-w-[85%]">
-                    {activeTimestamp 
-                      ? "I've loaded the current architectural draft. I can refine the diagrams or summary based on your feedback." 
-                      : "Once you generate a timestamp, I can help you refine it here."}
-                  </div>
+                  {(!activeTimestamp?.refinement_history || activeTimestamp.refinement_history.length === 0) ? (
+                    <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-700 max-w-[85%]">
+                      {activeTimestamp 
+                        ? "I've loaded the current architectural draft. I can refine the diagrams or summary based on your feedback." 
+                        : "Once you generate a timestamp, I can help you refine it here."}
+                    </div>
+                  ) : (
+                    activeTimestamp.refinement_history.map((msg, i) => (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "rounded-lg p-3 text-sm max-w-[90%] anim-in fade-in slide-in-from-bottom-1",
+                          msg.role === 'user' 
+                            ? "bg-blue-600 text-white ml-auto" 
+                            : "bg-slate-100 text-slate-700 mr-auto"
+                        )}
+                      >
+                        {msg.content}
+                      </div>
+                    ))
+                  )}
+                  {refining && (
+                    <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-500 mr-auto flex items-center gap-2">
+                      <Loader2 size={14} className="animate-spin" />
+                      Refining draft...
+                    </div>
+                  )}
                 </div>
                 <div className="p-4 border-t border-slate-200 bg-slate-50">
                   <div className="relative">

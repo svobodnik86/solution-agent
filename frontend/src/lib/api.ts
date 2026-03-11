@@ -16,6 +16,7 @@ export interface Timestamp {
   architecture_summary?: string
   key_questions?: string[]
   pending_tasks?: any[]
+  refinement_history?: { role: string; content: string }[]
   created_at: string
 }
 

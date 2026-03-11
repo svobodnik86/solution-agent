@@ -14,7 +14,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className }: SidebarProps) {
-  const { projects, project, switchProject, timestamps, activeTimestamp, setActiveTimestamp, loading } = useProject()
+  const { projects, project, switchProject, timestamps, activeTimestamp, setActiveTimestamp, loading, profile } = useProject()
   const pathname = usePathname()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isProjectListOpen, setIsProjectListOpen] = useState(false)
@@ -147,10 +147,14 @@ export function Sidebar({ className }: SidebarProps) {
 
       <div className="p-4 border-t border-slate-200 bg-slate-50">
         <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white transition-all cursor-pointer">
-          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">AC</div>
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-200 uppercase">
+            {profile?.name?.split(' ').map((n: string) => n[0]).join('').substring(0, 2) || 'SA'}
+          </div>
           <div className="flex-1 overflow-hidden text-left">
-            <p className="text-sm font-semibold text-slate-900 truncate">Alex Chen</p>
-            <p className="text-xs text-slate-500 truncate">Solution Architect</p>
+            <p className="text-sm font-semibold text-slate-900 truncate">{profile?.name || 'Loading...'}</p>
+            <p className="text-xs text-slate-500 truncate">
+                {profile?.company_context?.split('.')[0] || 'Solution Architect'}
+            </p>
           </div>
         </div>
       </div>

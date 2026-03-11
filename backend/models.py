@@ -25,6 +25,7 @@ class Timestamp(Base):
     architecture_summary = Column(Text, nullable=True)
     key_questions = Column(JSON, nullable=True)
     pending_tasks = Column(JSON, nullable=True)
+    refinement_history = Column(JSON, nullable=True) # List of {"role": "user"|"assistant", "content": str}
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.UTC))
 
     project = relationship("Project", back_populates="timestamps")
