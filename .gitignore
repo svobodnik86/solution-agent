@@ -1,0 +1,37 @@
+# Build artifacts
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Databases & Vector Stores
+backend/db.sqlite
+backend/chroma_db/
+backend/vector_store/
+*.db
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agentic / Brain data (Internal)
+.gemini/
+brain/
+requirements_docs/
+test_data/
