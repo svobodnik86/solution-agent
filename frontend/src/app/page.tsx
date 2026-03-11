@@ -15,8 +15,28 @@ export default function DashboardPage() {
   const [refining, setRefining] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [workspaceNotes, setWorkspaceNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
   const [stagedFiles, setStagedFiles] = useState<{name: string, status: 'ingesting' | 'ready' | 'error'}[]>([])
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+
+  // Load project-specific notes
+  React.useEffect(() => {
+    if (project) {
+      setWorkspaceNotes(project.working_notes || '')
+    }
+  }, [project?.id])
+
+  const handleSaveNotes = async () => {
+    if (!project) return
+    setSavingNotes(true)
+    try {
+      await api.updateProject(project.id, { working_notes: workspaceNotes })
+    } catch (err) {
+      console.error("Save notes failed:", err)
+    } finally {
+      setSavingNotes(false)
+    }
+  }
 
   const handleGenerate = async () => {
     if (!project) return
@@ -325,6 +345,14 @@ export default function DashboardPage() {
                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                       <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                         <span className="text-sm font-semibold text-slate-700">Manual Working Notes</span>
+                        <button 
+                          onClick={handleSaveNotes}
+                          disabled={savingNotes || !project}
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider bg-white border border-slate-200 px-3 py-1 rounded shadow-sm disabled:opacity-50 transition-all flex items-center gap-1.5"
+                        >
+                          {savingNotes ? <Loader2 size={10} className="animate-spin" /> : <LayoutDashboard size={10} />}
+                          Save Notes
+                        </button>
                       </div>
                       <textarea 
                         value={workspaceNotes}

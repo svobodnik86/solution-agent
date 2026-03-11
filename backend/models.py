@@ -9,6 +9,7 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(Text, nullable=True)
+    working_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.UTC))
 
     timestamps = relationship("Timestamp", back_populates="project", cascade="all, delete-orphan")

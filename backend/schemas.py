@@ -5,9 +5,15 @@ from datetime import datetime
 class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
+    working_notes: Optional[str] = None
 
 class ProjectCreate(ProjectBase):
     pass
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    working_notes: Optional[str] = None
 
 class TimestampBase(BaseModel):
     project_id: int

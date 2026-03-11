@@ -4,6 +4,7 @@ export interface Project {
   id: number
   name: string
   description?: string
+  working_notes?: string
   created_at: string
 }
 
@@ -38,6 +39,16 @@ export const api = {
   async getProject(id: number): Promise<Project & { timestamps: Timestamp[] }> {
     const res = await fetch(`${API_BASE_URL}/projects/${id}`)
     if (!res.ok) throw new Error('Failed to fetch project')
+    return res.json()
+  },
+
+  async updateProject(id: number, data: any): Promise<Project> {
+    const res = await fetch(`${API_BASE_URL}/projects/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    if (!res.ok) throw new Error('Failed to update project')
     return res.json()
   },
 
