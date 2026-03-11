@@ -10,6 +10,11 @@ An AI-powered workflow tool for Solution Architects (SAs) to synthesize meeting 
 - **Model Agnostic**: Supports diverse LLMs (optimized for Gemini 2.0/3.0 Flash) via LiteLLM.
 - **Test Connection**: Immediate verification of LLM settings.
 
+## Agentic Framework
+This project utilizes a lean agentic architecture:
+- **LiteLLM**: Provides a unified interface for calling 100+ LLMs (OpenAI, Anthropic, Google, etc.).
+- **Custom Orchestrator**: A specialized state machine (`AgentOrchestrator`) that manages the multi-step process of context ingestion, RAG retrieval, and structured architecture synthesis.
+
 ## Tech Stack
 - **Frontend**: Next.js, Tailwind CSS, Shadcn UI, Mermaid.js
 - **Backend**: FastAPI, SQLAlchemy (SQLite), LiteLLM, ChromaDB
