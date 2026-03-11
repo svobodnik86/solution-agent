@@ -2,6 +2,10 @@
 
 An AI-powered workflow tool for Solution Architects (SAs) to synthesize meeting transcripts, documents, and notes into point-in-time architectural snapshots.
 
+## How it Works
+![Solution Agent Overview](./icons/overview.png)
+
+
 ## Key Features
 - **Project Timeline**: Track architectural evolution over time.
 - **Automated Diagramming**: Generates AS-IS and TO-BE Mermaid sequence diagrams from unstructured context.

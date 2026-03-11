@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NewProjectModal } from './NewProjectModal'
+import AppIcon from './AppIcon'
 
 interface SidebarProps {
   className?: string
@@ -25,9 +26,9 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside className={cn("flex flex-col w-72 bg-slate-50 border-r border-slate-200 h-screen shrink-0", className)}>
       <div className="p-6">
-        <Link href="/" className="text-xl font-bold text-slate-900 flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black">S</div>
-          Solution Agent
+        <Link href="/" className="text-xl font-bold text-slate-900 flex items-center gap-3 group">
+          <AppIcon size={36} className="group-hover:scale-105 transition-transform duration-300 shadow-sm" />
+          <span className="tracking-tight">Solution Agent</span>
         </Link>
       </div>
 
