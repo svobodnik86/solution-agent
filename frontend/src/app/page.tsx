@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useState } from 'react'
-import { LayoutDashboard, FileText, Briefcase, ChevronRight, Send, PlusCircle, Loader2 } from 'lucide-react'
+import { LayoutDashboard, FileText, Briefcase, ChevronRight, Send, PlusCircle, Loader2, Check, Trash2, Edit2, Save, X, Eye } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
 import Mermaid from '@/components/Mermaid'
 import { api } from '@/lib/api'
@@ -15,10 +17,29 @@ export default function DashboardPage() {
   const [refining, setRefining] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [workspaceNotes, setWorkspaceNotes] = useState('')
+  const [workspaceNotesTitle, setWorkspaceNotesTitle] = useState('Manual Note')
   const [savingNotes, setSavingNotes] = useState(false)
   const [showSaved, setShowSaved] = useState(false)
-  const [stagedFiles, setStagedFiles] = useState<{name: string, status: 'ingesting' | 'ready' | 'error'}[]>([])
+  const [stagedFiles, setStagedFiles] = useState<{name: string, status: 'ingesting' | 'ready' | 'error'}[]>([]) // Keep for upload progress only
+  const [projectContexts, setProjectContexts] = useState<any[]>([])
+  const [viewingContext, setViewingContext] = useState<any | null>(null)
+  const [editingContextId, setEditingContextId] = useState<string | null>(null)
+  const [editingContextName, setEditingContextName] = useState('')
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+
+  const fetchContexts = React.useCallback(async () => {
+    if (!project) return
+    try {
+      const contexts = await api.getProjectContexts(project.id)
+      setProjectContexts(contexts)
+    } catch (err) {
+      console.error("Failed to fetch contexts", err)
+    }
+  }, [project?.id])
+
+  React.useEffect(() => {
+    fetchContexts()
+  }, [fetchContexts])
 
   // Load project-specific notes
   React.useEffect(() => {
@@ -27,17 +48,18 @@ export default function DashboardPage() {
     }
   }, [project?.id])
 
-  const handleSaveNotes = async () => {
-    if (!project) return
+  const handleIngestNotes = async () => {
+    if (!project || !workspaceNotes.trim()) return
     setSavingNotes(true)
-    setShowSaved(false)
     try {
-      const updatedProject = await api.updateProject(project.id, { working_notes: workspaceNotes })
-      setProject({ ...project, ...updatedProject })
+      await api.ingestOnly(project.id, 'manual_notes', { content: workspaceNotes, name: workspaceNotesTitle })
+      setWorkspaceNotes('')
+      setWorkspaceNotesTitle('Manual Note')
       setShowSaved(true)
       setTimeout(() => setShowSaved(false), 3000)
+      fetchContexts()
     } catch (err) {
-      console.error("Save notes failed:", err)
+      console.error("Ingest notes failed:", err)
     } finally {
       setSavingNotes(false)
     }
@@ -49,10 +71,9 @@ export default function DashboardPage() {
     setAnalysisError(null)
     try {
       const context = workspaceNotes || "Analyze the architectural context provided in the uploaded documents."
-      const newTs = await api.generateTimestamp(project.id, context)
+      const newTs = await api.generateTimestamp(project.id, context, "New Milestone")
       setTimestamps([...timestamps, newTs])
       setActiveTimestamp(newTs)
-      // Removing automatic tab switch: setActiveTab('diagrams')
       
       // Clear workspace notes on initial success
       if (workspaceNotes && !activeTimestamp) {
@@ -93,8 +114,9 @@ export default function DashboardPage() {
       reader.onload = async (event) => {
         const content = event.target?.result as string
         try {
-          await api.ingestOnly(project.id, 'local_file', { content })
-          setStagedFiles(prev => prev.map(f => f.name === file.name ? { ...f, status: 'ready' } : f))
+          await api.ingestOnly(project.id, 'local_file', { content, name: file.name })
+          setStagedFiles(prev => prev.filter(f => f.name !== file.name))
+          fetchContexts()
         } catch (err) {
           setStagedFiles(prev => prev.map(f => f.name === file.name ? { ...f, status: 'error' } : f))
         }
@@ -153,7 +175,8 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 overflow-y-auto flex flex-col">
         {activeTab === 'diagrams' && (
           <div className="flex-1 p-8 grid grid-cols-2 gap-8 overflow-auto">
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
@@ -192,10 +215,14 @@ export default function DashboardPage() {
             <div className="max-w-5xl mx-auto space-y-8">
               <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
                 <h2 className="text-2xl font-bold text-slate-900 mb-6 font-sans">Architecture Summary: {project?.name}</h2>
-                <div className="prose prose-slate max-w-none">
-                  <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
-                    {activeTimestamp?.architecture_summary || "No summary generated yet."}
-                  </p>
+                <div className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-p:leading-relaxed">
+                  {activeTimestamp?.architecture_summary ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {activeTimestamp.architecture_summary}
+                    </ReactMarkdown>
+                  ) : (
+                    <p className="text-slate-500 italic">No summary generated yet.</p>
+                  )}
                 </div>
               </div>
 
@@ -246,43 +273,8 @@ export default function DashboardPage() {
                         <PlusCircle size={24} />
                       </div>
                       <h3 className="font-semibold text-slate-900 group-hover:text-blue-700">Add Project Context</h3>
-                      <p className="text-sm text-slate-500 mt-1">Select transcripts, docs, or notes to stage for analysis</p>
+                      <p className="text-sm text-slate-500 mt-1">Select transcripts, docs, or notes to stage in the vector database</p>
                    </div>
-
-                   {stagedFiles.length > 0 && (
-                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden anim-in fade-in slide-in-from-top-2">
-                        <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Staged Knowledge</span>
-                          <span className="text-xs text-slate-400">{stagedFiles.length} file(s)</span>
-                        </div>
-                        <div className="divide-y divide-slate-100">
-                          {stagedFiles.map((file, idx) => (
-                            <div key={idx} className="p-3 flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                <FileText size={16} className="text-slate-400 flex-shrink-0" />
-                                <span className="text-slate-700 truncate font-medium">{file.name}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {file.status === 'ingesting' && <Loader2 size={14} className="animate-spin text-blue-500" />}
-                                {file.status === 'ready' && <div className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 uppercase">Ingested</div>}
-                                {file.status === 'error' && <div className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 uppercase">Error</div>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="p-2 bg-slate-50 border-t border-slate-200 flex justify-end">
-                            <button 
-                                onClick={() => {
-                                    setStagedFiles([]);
-                                    setAnalysisError(null);
-                                }}
-                                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-tight px-2 py-1"
-                            >
-                                Clear All
-                            </button>
-                        </div>
-                     </div>
-                   )}
 
                    {analysisError && (
                         <div id="analysis-error-banner" className="bg-red-50 border-2 border-red-200 p-6 rounded-xl text-red-800 flex flex-col gap-2 anim-in fade-in zoom-in">
@@ -301,30 +293,7 @@ export default function DashboardPage() {
                         </div>
                    )}
                    
-                   {stagedFiles.some(f => f.status === 'ready') && !analysisError && (
-                        <div id="knowledge-staged-banner" className="bg-blue-600 p-6 rounded-xl shadow-lg shadow-blue-200 text-white flex items-center justify-between">
-                            <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm shrink-0">
-                                    <FileText size={20} />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-lg leading-tight text-white">Knowledge Staged</h4>
-                                    <p className="text-blue-100 text-sm mt-0.5">Ready to generate architectural insights from your uploads.</p>
-                                </div>
-                            </div>
-                            <button 
-                                id="run-analysis-workspace-btn"
-                                onClick={handleGenerate}
-                                disabled={generating}
-                                className="bg-white text-blue-600 font-bold px-8 py-3 rounded-lg hover:bg-blue-50 transition-all flex items-center gap-2 shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap"
-                            >
-                                {generating ? <Loader2 size={18} className="animate-spin" /> : <PlusCircle size={18} />}
-                                {activeTimestamp ? "Update Analysis" : "Run Initial Analysis"}
-                            </button>
-                        </div>
-                   )}
-
-                   {activeTimestamp && !generating && !analysisError && stagedFiles.length > 0 && (
+                   {activeTimestamp && !generating && !analysisError && projectContexts.length > 0 && (
                        <div id="analysis-success-banner" className="bg-green-600 p-6 rounded-xl shadow-lg shadow-green-100 text-white flex items-center justify-between anim-in fade-in slide-in-from-top-4">
                            <div className="flex items-start gap-4">
                                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm shrink-0">
@@ -348,28 +317,33 @@ export default function DashboardPage() {
                    )}
                    
                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                      <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-700">Manual Working Notes</span>
-                        <button 
-                          onClick={handleSaveNotes}
-                          disabled={savingNotes || !project}
-                          className={cn(
-                            "text-[10px] font-bold uppercase tracking-wider border px-3 py-1 rounded shadow-sm disabled:opacity-50 transition-all flex items-center gap-1.5",
-                            showSaved 
-                              ? "text-green-600 bg-green-50 border-green-200" 
-                              : "text-blue-600 bg-white border-slate-200 hover:text-blue-700"
-                          )}
-                        >
-                          {savingNotes ? (
-                            <Loader2 size={10} className="animate-spin" />
-                          ) : showSaved ? (
-                            <LayoutDashboard size={10} />
-                          ) : (
-                            <LayoutDashboard size={10} />
-                          )}
-                          {savingNotes ? "Saving..." : showSaved ? "Saved!" : "Save Notes"}
-                        </button>
-                      </div>
+                       <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                         <input 
+                           value={workspaceNotesTitle}
+                           onChange={(e) => setWorkspaceNotesTitle(e.target.value)}
+                           className="text-sm font-semibold text-slate-900 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1.5 py-0.5 -ml-1 border-transparent focus:bg-white"
+                           placeholder="Manual Note Title"
+                         />
+                         <button 
+                           onClick={handleIngestNotes}
+                           disabled={savingNotes || !project || !workspaceNotes.trim()}
+                           className={cn(
+                             "text-[10px] font-bold uppercase tracking-wider border px-3 py-1 rounded shadow-sm disabled:opacity-50 transition-all flex items-center gap-1.5",
+                             showSaved 
+                               ? "text-green-600 bg-green-50 border-green-200" 
+                               : "text-blue-600 bg-white border-slate-200 hover:text-blue-700"
+                           )}
+                         >
+                           {savingNotes ? (
+                             <Loader2 size={10} className="animate-spin" />
+                           ) : showSaved ? (
+                             <Check size={10} />
+                           ) : (
+                             <PlusCircle size={10} />
+                           )}
+                           {savingNotes ? "Adding..." : showSaved ? "Added!" : "Add"}
+                         </button>
+                       </div>
                       <textarea 
                         value={workspaceNotes}
                         onChange={(e) => setWorkspaceNotes(e.target.value)}
@@ -379,71 +353,221 @@ export default function DashboardPage() {
                    </div>
                 </div>
              </div>
-             <div className="w-96 flex flex-col bg-white">
-                <div className="p-4 border-b border-slate-200">
-                  <h3 className="font-semibold text-slate-900">Refinement Chat</h3>
-                </div>
-                <div className="flex-1 p-4 overflow-auto space-y-4">
-                  {(!activeTimestamp?.refinement_history || activeTimestamp.refinement_history.length === 0) ? (
-                    <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-700 max-w-[85%]">
-                      {activeTimestamp 
-                        ? "I've loaded the current architectural draft. I can refine the diagrams or summary based on your feedback." 
-                        : "Once you generate a timestamp, I can help you refine it here."}
-                    </div>
-                  ) : (
-                    activeTimestamp.refinement_history.map((msg, i) => (
-                      <div 
-                        key={i} 
-                        className={cn(
-                          "rounded-lg p-3 text-sm max-w-[90%] anim-in fade-in slide-in-from-bottom-1",
-                          msg.role === 'user' 
-                            ? "bg-blue-600 text-white ml-auto" 
-                            : "bg-slate-100 text-slate-700 mr-auto"
-                        )}
-                      >
-                        {msg.content}
-                      </div>
-                    ))
-                  )}
-                  {refining && (
-                    <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-500 mr-auto flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin" />
-                      Refining draft...
-                    </div>
-                  )}
-                </div>
-                <div className="p-4 border-t border-slate-200 bg-slate-50">
-                  <div className="relative">
-                    <input 
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
-                      disabled={!activeTimestamp || refining}
-                      className="w-full bg-white border border-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
-                      placeholder="Ask the agent to refine drafts..."
-                    />
+              
+              {/* Right Sidebar - Project Contexts */}
+              <div className="w-96 flex flex-col bg-slate-50 relative shrink-0">
+                 <div className="p-4 border-b border-slate-200 bg-white shadow-sm z-10 flex items-center justify-between">
+                   <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                     <Briefcase size={16} className="text-blue-600" />
+                     Project Contexts
+                   </h3>
+                   <span className="text-xs bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">{projectContexts.length + stagedFiles.length}</span>
+                 </div>
+                 
+                 <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2">
+                    {projectContexts.length === 0 && stagedFiles.length === 0 ? (
+                        <div className="text-slate-400 text-sm italic text-center mt-10 p-4">
+                            No context added yet. Upload files or save notes to start building your project's knowledge base.
+                        </div>
+                    ) : (
+                        <>
+                          {projectContexts.map((ctx) => (
+                            <div key={ctx.id} className="p-3 bg-white mb-2 rounded border border-slate-200 flex flex-col gap-2 text-sm group transition-all hover:border-blue-300">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-2 overflow-hidden flex-1">
+                                  <FileText size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                                  {editingContextId === ctx.id ? (
+                                      <div className="flex flex-col gap-2 flex-1 mr-2">
+                                          <input
+                                              value={editingContextName}
+                                              onChange={e => setEditingContextName(e.target.value)}
+                                              className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                                              autoFocus
+                                              onKeyDown={async (e) => {
+                                                  if (e.key === 'Enter') {
+                                                      try {
+                                                          await api.renameProjectContext(project!.id, ctx.id, editingContextName)
+                                                          setEditingContextId(null)
+                                                          fetchContexts()
+                                                      } catch (e) { console.error(e) }
+                                                  }
+                                                  if (e.key === 'Escape') setEditingContextId(null)
+                                              }}
+                                          />
+                                          <div className="flex justify-end gap-2">
+                                              <button onClick={async () => {
+                                                  try {
+                                                      await api.renameProjectContext(project!.id, ctx.id, editingContextName)
+                                                      setEditingContextId(null)
+                                                      fetchContexts()
+                                                  } catch (e) { console.error(e) }
+                                              }} className="text-xs text-white bg-green-600 hover:bg-green-700 px-2 py-1 rounded flex items-center gap-1"><Save size={12}/> Save</button>
+                                              <button onClick={() => setEditingContextId(null)} className="text-xs text-slate-600 bg-slate-200 hover:bg-slate-300 px-2 py-1 rounded flex items-center gap-1"><X size={12}/> Cancel</button>
+                                          </div>
+                                      </div>
+                                  ) : (
+                                      <div className="flex flex-col overflow-hidden">
+                                          <span className="text-slate-800 font-semibold">{ctx.name}</span>
+                                          <span className="text-[11px] text-slate-400 mt-0.5">{new Date(ctx.timestamp).toLocaleString()} &bull; {ctx.provider}</span>
+                                      </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                                <div className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 uppercase inline-block">Stored</div>
+                                {editingContextId !== ctx.id && (
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => setViewingContext(ctx)} className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded flex items-center gap-1 text-xs"><Eye size={12}/> View</button>
+                                        <button onClick={() => { setEditingContextId(ctx.id); setEditingContextName(ctx.name); }} className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded"><Edit2 size={12}/></button>
+                                        <button onClick={async () => {
+                                            try {
+                                                await api.deleteProjectContext(project!.id, ctx.id)
+                                                fetchContexts()
+                                            } catch(e) { console.error(e) }
+                                        }} className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 size={12}/></button>
+                                    </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {stagedFiles.map((file, idx) => (
+                            <div key={`staged-${idx}`} className="p-3 bg-white mb-2 rounded border border-slate-200 flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                <FileText size={16} className="text-slate-400 flex-shrink-0" />
+                                <span className="text-slate-700 truncate font-medium">{file.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {file.status === 'ingesting' && <Loader2 size={14} className="animate-spin text-blue-500" />}
+                                {file.status === 'error' && <div className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 uppercase">Error</div>}
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                    )}
+                 </div>
+                 
+                 <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)] z-10 flex flex-col gap-3">
+                    {projectContexts.length > 0 && (
+                        <div className="flex justify-end">
+                            <button 
+                                onClick={async () => {
+                                    if (!project) return;
+                                    for (const ctx of projectContexts) {
+                                        await api.deleteProjectContext(project.id, ctx.id);
+                                    }
+                                    fetchContexts();
+                                    setStagedFiles([]);
+                                    setAnalysisError(null);
+                                }}
+                                className="text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-tight flex items-center gap-1 transition-colors"
+                            >
+                                <Trash2 size={10} /> Clear All
+                            </button>
+                        </div>
+                    )}
                     <button 
-                      onClick={handleRefine}
-                      disabled={!activeTimestamp || refining || !chatInput}
-                      className="absolute right-2 top-1.5 p-1 text-slate-400 hover:text-blue-600 disabled:opacity-30"
+                        id="run-analysis-workspace-btn"
+                        onClick={handleGenerate}
+                        disabled={generating || (projectContexts.length === 0 && stagedFiles.length === 0)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold py-3 rounded-lg text-sm shadow-md transition-all flex items-center justify-center gap-2"
                     >
-                      {refining ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+                        {generating && <Loader2 className="animate-spin" size={16} />}
+                        <PlusCircle size={16} />
+                        Generate Milestone
                     </button>
-                  </div>
-                    <button 
-                      id="run-analysis-chat-btn"
-                      onClick={handleGenerate}
-                      disabled={generating}
-                      className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-sm shadow-md transition-all flex items-center justify-center gap-2"
-                    >
-                      {generating && <Loader2 className="animate-spin" size={16} />}
-                      {activeTimestamp ? "Generate New Draft" : "Run Initial Analysis"}
-                    </button>
-                </div>
-             </div>
+                 </div>
+              </div>
           </div>
         )}
+        </div>
+
+        {/* Global Refinement Chat - Persistent across Diagrams and Summary */}
+        {(activeTab === 'diagrams' || activeTab === 'summary') && (
+           <div className="w-96 flex flex-col bg-white border-l border-slate-200">
+              <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900">Refinement Chat</h3>
+              </div>
+              <div className="flex-1 p-4 overflow-auto space-y-4">
+                {(!activeTimestamp?.refinement_history || activeTimestamp.refinement_history.length === 0) ? (
+                  <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-700 max-w-[85%]">
+                    {activeTimestamp 
+                      ? "I've loaded the current architectural draft. I can refine the diagrams or summary based on your feedback." 
+                      : "Once you generate a milestone, I can help you refine it here."}
+                  </div>
+                ) : (
+                  activeTimestamp.refinement_history.map((msg, i) => (
+                    <div 
+                      key={i} 
+                      className={cn(
+                        "rounded-lg p-3 text-sm max-w-[90%] anim-in fade-in slide-in-from-bottom-1",
+                        msg.role === 'user' 
+                          ? "bg-blue-600 text-white ml-auto" 
+                          : "bg-slate-100 text-slate-700 mr-auto"
+                      )}
+                    >
+                      {msg.content}
+                    </div>
+                  ))
+                )}
+                {refining && (
+                  <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-500 mr-auto flex items-center gap-2">
+                    <Loader2 size={14} className="animate-spin" />
+                    Refining draft...
+                  </div>
+                )}
+              </div>
+              <div className="p-4 border-t border-slate-200 bg-slate-50">
+                <div className="relative">
+                  <input 
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
+                    disabled={!activeTimestamp || refining}
+                    className="w-full bg-white border border-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+                    placeholder="Ask the agent to refine drafts..."
+                  />
+                  <button 
+                    onClick={handleRefine}
+                    disabled={!activeTimestamp || refining || !chatInput}
+                    className="absolute right-2 top-1.5 p-1 text-slate-400 hover:text-blue-600 disabled:opacity-30"
+                  >
+                    {refining ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+                  </button>
+                </div>
+              </div>
+           </div>
+        )}
       </div>
+
+      {/* Context Viewer Modal */}
+      {viewingContext && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-8">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-full flex flex-col overflow-hidden anim-in zoom-in fade-in">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                  <FileText size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 leading-tight">{viewingContext.name}</h3>
+                  <p className="text-xs text-slate-500">
+                    {new Date(viewingContext.timestamp).toLocaleString()} &bull; {viewingContext.provider}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewingContext(null)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 bg-white whitespace-pre-wrap font-mono text-sm text-slate-700 bg-slate-50/50">
+              {viewingContext.content || "No content context available."}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

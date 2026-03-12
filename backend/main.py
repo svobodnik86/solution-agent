@@ -141,16 +141,18 @@ def update_project(project_id: int, project: schemas.ProjectUpdate, db: Session 
 
 # --- Timestamp & Agent Routes ---
 
-@app.post("/projects/{project_id}/ingest", response_model=schemas.Timestamp)
+@app.post("/projects/{project_id}/ingest")
 async def ingest_and_generate(
     project_id: int, 
     request: schemas.IngestRequest, 
     db: Session = Depends(get_db)
 ):
+    # This route NO LONGER generates a timestamp. It only ingests.
+    # The frontend should be updated to no longer expect a schema.Timestamp back.
     orchestrator = AgentOrchestrator(db)
     try:
-        new_ts = await orchestrator.ingest_and_generate(project_id, request.provider, request.metadata)
-        return new_ts
+        doc_id = await orchestrator.ingest_only(project_id, request.provider, request.metadata)
+        return {"status": "success", "document_id": doc_id}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -169,6 +171,37 @@ async def ingest_only(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ingestion Error: {str(e)}")
 
+@app.get("/projects/{project_id}/contexts")
+async def get_project_contexts(project_id: int, db: Session = Depends(get_db)):
+    orchestrator = AgentOrchestrator(db)
+    try:
+        contexts = await orchestrator.get_project_contexts(project_id)
+        return contexts
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/projects/{project_id}/contexts/{doc_id}")
+async def rename_project_context(project_id: int, doc_id: str, request: schemas.ContextRenameRequest, db: Session = Depends(get_db)):
+    orchestrator = AgentOrchestrator(db)
+    try:
+        await orchestrator.rename_project_context(project_id, doc_id, request.name)
+        return {"status": "success"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/projects/{project_id}/contexts/{doc_id}")
+async def delete_project_context(project_id: int, doc_id: str, db: Session = Depends(get_db)):
+    orchestrator = AgentOrchestrator(db)
+    try:
+        await orchestrator.delete_project_context(project_id, doc_id)
+        return {"status": "success"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/projects/{project_id}/generate", response_model=schemas.Timestamp)
 async def generate_timestamp(
     project_id: int, 
@@ -177,12 +210,27 @@ async def generate_timestamp(
 ):
     orchestrator = AgentOrchestrator(db)
     try:
-        new_ts = await orchestrator.create_new_timestamp(project_id, request.context)
+        new_ts = await orchestrator.create_new_timestamp(project_id, request.context, request.name)
         return new_ts
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent Error: {str(e)}")
+
+@app.put("/timestamps/{timestamp_id}", response_model=schemas.Timestamp)
+def update_timestamp_name(
+    timestamp_id: int, 
+    request: schemas.TimestampRenameRequest, 
+    db: Session = Depends(get_db)
+):
+    ts = db.query(models.Timestamp).filter(models.Timestamp.id == timestamp_id).first()
+    if not ts:
+        raise HTTPException(status_code=404, detail="Timestamp not found")
+    
+    ts.name = request.name
+    db.commit()
+    db.refresh(ts)
+    return ts
 
 @app.post("/timestamps/{timestamp_id}/refine", response_model=schemas.Timestamp)
 async def refine_timestamp(

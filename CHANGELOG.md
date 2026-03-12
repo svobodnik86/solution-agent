@@ -5,8 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-03-11
+## [0.3.0] - 2026-03-12
 
+### Added
+- **Context Management**: Support for dynamically adding, reading, and renaming manual notes and files directly in the vector database via the new `/contexts` API routes.
+- **Context Viewer Modal**: Added a full-screen view modal for project contexts that displays raw file text and note inputs stored in ChromaDB.
+- **Milestone Workflow Separation**: Decoupled ingestion from milestone generation, enabling the creation of named architectural milestones on-demand.
+- **Markdown Typography**: Integrated `react-markdown` and `@tailwindcss/typography` to properly format and display LLM-generated summaries and task lists.
+
+### Changed
+- **Workspace Layout**: Refactored the dashboard layout to move the Refinement Chat to the Diagrams tab and relocate the Project Context list into a clean right-hand sidebar.
+- **Note Naming**: Users can now assign titles to manual notes *before* adding them to the project context, and rename them post-ingestion.
+
+## [0.2.0] - 2026-03-11
 ### Added
 - **Diagram Zoom (Inspection View)**: High-resolution modal for sequence diagrams with persistent headers and "Full Width" scaling.
 - **Project Isolation**: Strict partitioning of context (notes, history, RAG) per project_id.

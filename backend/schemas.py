@@ -17,6 +17,7 @@ class ProjectUpdate(BaseModel):
 
 class TimestampBase(BaseModel):
     project_id: int
+    name: str = "New Iteration"
     as_is_diagram: Optional[str] = None
     to_be_diagram: Optional[str] = None
     architecture_summary: Optional[str] = None
@@ -43,6 +44,13 @@ class IngestRequest(BaseModel):
 
 class GenerateTimestampRequest(BaseModel):
     context: str
+    name: str = "New Iteration"
+
+class TimestampRenameRequest(BaseModel):
+    name: str
+
+class ContextRenameRequest(BaseModel):
+    name: str
 
 class ChatRefinementRequest(BaseModel):
     feedback: str

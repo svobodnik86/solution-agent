@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { PlusCircle, MessageSquare, Settings, LayoutDashboard, Loader2, ChevronDown } from 'lucide-react'
+import { PlusCircle, MessageSquare, Settings, LayoutDashboard, Loader2, ChevronDown, Edit2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useProject } from '@/contexts/ProjectContext'
 import { format } from 'date-fns'
@@ -19,6 +19,24 @@ export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isProjectListOpen, setIsProjectListOpen] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editName, setEditName] = useState('')
+  const { renameMilestone } = useProject()
+
+  const handleRenameSubmit = async (e: React.FormEvent, id: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (editName.trim()) {
+      await renameMilestone(id, editName.trim())
+    }
+    setEditingId(null)
+  }
+
+  const startEditing = (e: React.MouseEvent, id: number, currentName: string) => {
+    e.stopPropagation()
+    setEditName(currentName)
+    setEditingId(id)
+  }
 
   const isSettings = pathname === '/settings'
   const isDashboard = pathname === '/'
@@ -115,12 +133,38 @@ export function Sidebar({ className }: SidebarProps) {
                       activeTimestamp?.id === ts.id ? "bg-blue-600 ring-blue-100" : "bg-slate-300 ring-transparent group-hover:bg-slate-400"
                     )} />
                     <div className={cn(
-                      "p-2 rounded-lg transition-all",
+                      "p-2 rounded-lg transition-all group/item",
                       activeTimestamp?.id === ts.id ? "bg-white shadow-sm border border-slate-200" : "hover:bg-slate-100"
                     )}>
-                      <p className={cn("text-sm font-semibold truncate", activeTimestamp?.id === ts.id ? "text-slate-900" : "text-slate-700")}>
-                        Iteration {ts.id}
-                      </p>
+                      {editingId === ts.id ? (
+                        <form onSubmit={(e) => handleRenameSubmit(e, ts.id)} className="flex items-center gap-1">
+                           <input 
+                             autoFocus
+                             value={editName}
+                             onChange={(e) => setEditName(e.target.value)}
+                             onClick={(e) => e.stopPropagation()}
+                             className="text-sm font-semibold text-slate-900 bg-transparent border-b border-blue-400 focus:outline-none w-full px-1"
+                           />
+                           <button type="submit" onClick={(e) => e.stopPropagation()} className="text-blue-600 hover:bg-blue-50 p-1 rounded">
+                             <Check size={14} />
+                           </button>
+                        </form>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                           <p className={cn("text-sm font-semibold truncate", activeTimestamp?.id === ts.id ? "text-slate-900" : "text-slate-700")}>
+                             {ts.name || `Iteration ${ts.id}`}
+                           </p>
+                           <button 
+                             onClick={(e) => startEditing(e, ts.id, ts.name || `Iteration ${ts.id}`)}
+                             className={cn(
+                               "p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-opacity", 
+                               activeTimestamp?.id === ts.id ? "opacity-100" : "opacity-0 group-hover/item:opacity-100"
+                             )}
+                           >
+                             <Edit2 size={12} />
+                           </button>
+                        </div>
+                      )}
                       <p className="text-[10px] text-slate-500">
                         {ts.created_at ? format(new Date(ts.created_at), 'MMM d, h:mm a') : 'Recent'}
                       </p>

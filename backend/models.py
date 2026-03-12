@@ -20,6 +20,7 @@ class Timestamp(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"))
+    name = Column(String, default="New Iteration")
     as_is_diagram = Column(Text, nullable=True)
     to_be_diagram = Column(Text, nullable=True)
     architecture_summary = Column(Text, nullable=True)

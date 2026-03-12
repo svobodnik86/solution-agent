@@ -24,21 +24,61 @@ class AgentOrchestrator:
             raise ValueError("No context retrieved from provider.")
 
         doc_id = f"proj_{project_id}_{datetime.datetime.now().timestamp()}"
+        
+        name = metadata.get('name', f"Added {provider_type} context")
+        timestamp = datetime.datetime.now().isoformat()
+        
         # 2. Store in Vector DB
         await self.vector_store.add_documents(
             documents=[raw_context],
-            metadatas=[{"project_id": project_id, "provider": provider_type}],
+            metadatas=[{"project_id": project_id, "provider": provider_type, "name": name, "timestamp": timestamp}],
             ids=[doc_id]
         )
         return doc_id
 
-    async def ingest_and_generate(self, project_id: int, provider_type: str, metadata: Dict[str, Any]) -> Timestamp:
-        await self.ingest_only(project_id, provider_type, metadata)
-        return await self.create_new_timestamp(project_id, "New ingestion triggered analysis.")
+    async def get_project_contexts(self, project_id: int) -> List[Dict[str, Any]]:
+        results = await self.vector_store.get_documents(where={"project_id": project_id})
+        contexts = []
+        if results and results.get("ids"):
+            for i in range(len(results["ids"])):
+                meta = results["metadatas"][i] or {}
+                content = results["documents"][i] if "documents" in results and results["documents"] else ""
+                contexts.append({
+                    "id": results["ids"][i],
+                    "name": meta.get("name", "Unknown Context"),
+                    "provider": meta.get("provider", "unknown"),
+                    "timestamp": meta.get("timestamp", datetime.datetime.now().isoformat()),
+                    "content": content
+                })
+        return contexts
+        
+    async def rename_project_context(self, project_id: int, doc_id: str, new_name: str):
+        results = await self.vector_store.get_documents(where={"project_id": project_id})
+        if not results or not results.get("ids") or doc_id not in results["ids"]:
+            raise ValueError("Context not found for this project.")
+            
+        index = results["ids"].index(doc_id)
+        current_metadata = results["metadatas"][index] or {}
+        current_metadata["name"] = new_name
+        
+        await self.vector_store.update_document_metadata(doc_id, current_metadata)
+        
+    async def delete_project_context(self, project_id: int, doc_id: str):
+        results = await self.vector_store.get_documents(where={"project_id": project_id})
+        if not results or not results.get("ids") or doc_id not in results["ids"]:
+            raise ValueError("Context not found for this project.")
+            
+        await self.vector_store.delete_document(doc_id)
 
-    async def create_new_timestamp(self, project_id: int, context: str) -> Timestamp:
+
+    async def ingest_and_generate(self, project_id: int, provider_type: str, metadata: Dict[str, Any]) -> Timestamp:
+        # DEPRECATED: Keeping for backwards compatibility if needed, but UI shouldn't use it.
+        await self.ingest_only(project_id, provider_type, metadata)
+        return await self.create_new_timestamp(project_id, "New ingestion triggered analysis.", "New Iteration")
+
+    async def create_new_timestamp(self, project_id: int, context: str, name: str = "New Iteration") -> Timestamp:
         """
-        Generates a new timestamp iteration.
+        Generates a new timestamp iteration (Milestone).
         """
         # Fetch profile context for global constraints
         profile = self.db.query(Profile).first()
@@ -51,18 +91,29 @@ class AgentOrchestrator:
             raise ValueError(f"Project with ID {project_id} not found.")
 
         # 1. RAG: Retrieve all documents for this project
-        # In a real app, you'd use a semantic query. Here we pull the project's core context.
-        rag_results = await self.vector_store.query_documents(
-            query_texts=[context],
-            n_results=5,
-            where={"project_id": project_id}
-        )
-        
         rag_context = ""
-        if rag_results and rag_results.get("documents"):
-             # Flatten documents list
-             docs = [d for sublist in rag_results["documents"] for d in sublist]
-             rag_context = "\n---\n".join(docs)
+        if context.strip():
+            rag_results = await self.vector_store.query_documents(
+                query_texts=[context],
+                n_results=5,
+                where={"project_id": project_id}
+            )
+            
+            if rag_results and rag_results.get("documents"):
+                 # Flatten documents list
+                 docs = [d for sublist in rag_results["documents"] for d in sublist]
+                 rag_context = "\n---\n".join(docs)
+        else:
+            # Fallback: Just get some recent documents for this project if no query text
+            # Depending on vector_store implementation, we might just query for all project docs
+            rag_results = await self.vector_store.query_documents(
+                query_texts=["Solution architecture"], # Default generic query
+                n_results=10,
+                where={"project_id": project_id}
+            )
+            if rag_results and rag_results.get("documents"):
+                 docs = [d for sublist in rag_results["documents"] for d in sublist]
+                 rag_context = "\n---\n".join(docs)
 
         previous_ts = self.db.query(Timestamp).filter(Timestamp.project_id == project_id).order_by(Timestamp.created_at.desc()).first()
         
@@ -79,6 +130,7 @@ class AgentOrchestrator:
 
         new_ts = Timestamp(
             project_id=project_id,
+            name=name,
             as_is_diagram=snapshot.get("as_is_diagram", ""),
             to_be_diagram=snapshot.get("to_be_diagram", ""),
             architecture_summary=snapshot.get("architecture_summary", ""),

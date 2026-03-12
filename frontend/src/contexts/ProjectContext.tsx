@@ -15,6 +15,7 @@ interface ProjectContextType {
   profile: any | null
   refreshData: (projectId?: number) => Promise<void>
   switchProject: (projectId: number) => Promise<void>
+  renameMilestone: (timestampId: number, newName: string) => Promise<void>
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined)
@@ -86,6 +87,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     await refreshData(projectId)
   }
 
+  const renameMilestone = async (timestampId: number, newName: string) => {
+    try {
+      const updated = await api.renameTimestamp(timestampId, newName)
+      setTimestamps(prev => prev.map(t => t.id === timestampId ? updated : t))
+      if (activeTimestamp?.id === timestampId) {
+        setActiveTimestamp(updated)
+      }
+    } catch (err) {
+      console.error("Failed to rename milestone", err)
+    }
+  }
+
   useEffect(() => {
     refreshData()
   }, [])
@@ -98,7 +111,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       activeTimestamp, setActiveTimestamp, 
       loading, profile,
       refreshData,
-      switchProject
+      switchProject,
+      renameMilestone
     }}>
       {children}
     </ProjectContext.Provider>

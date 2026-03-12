@@ -21,10 +21,15 @@ class LocalFileIngestionProvider(BaseIngestionProvider):
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
 
+class ManualNotesProvider(BaseIngestionProvider):
+    async def fetch_context(self, source_metadata: Dict[str, Any]) -> str:
+        return source_metadata.get('content', '')
+
 class IngestionManager:
     def __init__(self):
         self.providers = {
-            "local_file": LocalFileIngestionProvider()
+            "local_file": LocalFileIngestionProvider(),
+            "manual_notes": ManualNotesProvider()
         }
 
     async def get_context(self, provider_type: str, metadata: Dict[str, Any]) -> str:

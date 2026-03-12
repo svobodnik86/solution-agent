@@ -11,6 +11,7 @@ export interface Project {
 export interface Timestamp {
   id: number
   project_id: number
+  name: string
   as_is_diagram?: string
   to_be_diagram?: string
   architecture_summary?: string
@@ -53,11 +54,11 @@ export const api = {
     return res.json()
   },
 
-  async generateTimestamp(projectId: number, context: string): Promise<Timestamp> {
+  async generateTimestamp(projectId: number, context: string, name: string = "New Iteration"): Promise<Timestamp> {
     const res = await fetch(`${API_BASE_URL}/projects/${projectId}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context })
+      body: JSON.stringify({ context, name })
     })
     if (!res.ok) throw new Error('Failed to generate timestamp')
     return res.json()
@@ -70,6 +71,16 @@ export const api = {
       body: JSON.stringify({ feedback })
     })
     if (!res.ok) throw new Error('Failed to refine timestamp')
+    return res.json()
+  },
+
+  async renameTimestamp(timestampId: number, name: string): Promise<Timestamp> {
+    const res = await fetch(`${API_BASE_URL}/timestamps/${timestampId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    })
+    if (!res.ok) throw new Error('Failed to rename timestamp')
     return res.json()
   },
 
@@ -90,6 +101,30 @@ export const api = {
       body: JSON.stringify({ provider, metadata })
     })
     if (!res.ok) throw new Error('Failed to ingest context')
+    return res.json()
+  },
+
+  async getProjectContexts(projectId: number): Promise<any[]> {
+    const res = await fetch(`${API_BASE_URL}/projects/${projectId}/contexts`)
+    if (!res.ok) throw new Error('Failed to fetch contexts')
+    return res.json()
+  },
+
+  async renameProjectContext(projectId: number, docId: string, name: string): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/projects/${projectId}/contexts/${docId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    })
+    if (!res.ok) throw new Error('Failed to rename context')
+    return res.json()
+  },
+
+  async deleteProjectContext(projectId: number, docId: string): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/projects/${projectId}/contexts/${docId}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) throw new Error('Failed to delete context')
     return res.json()
   },
 

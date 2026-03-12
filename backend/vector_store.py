@@ -25,3 +25,18 @@ class VectorStore:
             where=where
         )
         return results
+
+    async def get_documents(self, where: dict = None):
+        """Get documents without semantic search, useful for listing."""
+        return self.collection.get(where=where)
+
+    async def update_document_metadata(self, doc_id: str, metadata: dict):
+        """Update metadata for a specific document."""
+        self.collection.update(
+            ids=[doc_id],
+            metadatas=[metadata]
+        )
+
+    async def delete_document(self, doc_id: str):
+        """Delete a document from the vector store."""
+        self.collection.delete(ids=[doc_id])
