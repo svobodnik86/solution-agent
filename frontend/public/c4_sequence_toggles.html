@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solution Agent - Sequence & C4 Integration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .mermaid-mock { background-image: repeating-linear-gradient(45deg, #f1f5f9 25%, transparent 25%, transparent 75%, #f1f5f9 75%, #f1f5f9), repeating-linear-gradient(45deg, #f1f5f9 25%, #ffffff 25%, #ffffff 75%, #f1f5f9 75%, #f1f5f9); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
+        .mermaid-c4 { background-image: repeating-linear-gradient(45deg, #eff6ff 25%, transparent 25%, transparent 75%, #eff6ff 75%, #eff6ff), repeating-linear-gradient(45deg, #eff6ff 25%, #ffffff 25%, #ffffff 75%, #eff6ff 75%, #eff6ff); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
+    </style>
+</head>
+<body class="p-8">
+
+    <div class="max-w-7xl mx-auto space-y-16">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-3xl font-bold text-slate-900">Sequence Diagrams + C4 Architecture</h1>
+            <p class="text-slate-500 mt-2">Concepts for retaining side-by-side behavioral flows while integrating structural C4 drill-downs.</p>
+        </header>
+
+        <!-- Option 1: The Pill Toggle (Clean & Simple) -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 p-6 border-b border-slate-200">
+                <h2 class="text-xl font-bold text-slate-900">Concept 1: The "View Mode" Pill Toggle</h2>
+                <p class="text-sm text-slate-600 mt-1">A sleek segmented control at the top of the Diagrams tab. It cleanly swaps the entire view from "Behavioral (Sequence)" to "Structural (C4)".</p>
+            </div>
+            <div class="p-8 bg-slate-100 flex gap-6">
+                <!-- Main Diagram Area -->
+                <div class="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col p-6 h-[600px]">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold text-slate-900">Architecture Diagrams</h3>
+                        <!-- The Toggle -->
+                        <div class="flex bg-slate-100 p-1 rounded-full shadow-inner">
+                            <button class="px-5 py-2 text-sm font-bold rounded-full bg-white text-blue-600 shadow-sm flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                Behavioral (Sequence)
+                            </button>
+                            <button class="px-5 py-2 text-sm font-medium rounded-full text-slate-500 hover:text-slate-900 flex items-center gap-2 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                                Structural (C4 Drill-down)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Content (Currently showing Sequence) -->
+                    <div class="flex-1 grid grid-cols-2 gap-6">
+                        <div class="border border-slate-200 rounded-lg flex flex-col overflow-hidden">
+                            <div class="bg-slate-50 p-2 font-medium text-center border-b border-slate-200 text-sm w-full">AS-IS Sequence</div>
+                            <div class="flex-1 mermaid-mock flex items-center justify-center text-slate-400">Sequence Diagram</div>
+                        </div>
+                        <div class="border border-blue-200 ring-1 ring-blue-50 rounded-lg flex flex-col overflow-hidden">
+                            <div class="bg-blue-50 p-2 font-bold text-blue-800 text-center border-b border-blue-200 text-sm w-full">TO-BE Sequence</div>
+                            <div class="flex-1 mermaid-mock flex items-center justify-center text-slate-400">Sequence Diagram</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Refinement Chat is static on the right -->
+                <div class="w-80 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="p-4 border-b border-slate-100 font-semibold">Refinement Chat</div>
+                    <div class="flex-1 p-4 text-sm text-slate-500 italic flex items-center justify-center text-center">Chat remains persistent regardless of which diagram type is active.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Option 2: Vertical Split View (See both at once) -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 p-6 border-b border-slate-200">
+                <h2 class="text-xl font-bold text-slate-900">Concept 2: The "Split Horizon" View</h2>
+                <p class="text-sm text-slate-600 mt-1">Shows the single C4 Drill-down on top (Structure), and the side-by-side Sequence Diagrams on the bottom (Behavior). Gives the full picture at a glance, but limits vertical screen real estate.</p>
+            </div>
+            <div class="p-8 bg-slate-100 flex gap-6">
+                <!-- Main Diagram Area -->
+                <div class="flex-1 flex flex-col gap-6 h-[800px]">
+                    
+                    <!-- Top Half: C4 Drill Down -->
+                    <div class="bg-white rounded-xl border border-blue-200 shadow-sm flex flex-col flex-[1.5] overflow-hidden">
+                        <div class="p-3 border-b border-slate-100 flex items-center justify-between bg-white">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="font-bold text-slate-900">Structural Architecture</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="text-slate-400 font-medium">System Context</span>
+                                <span class="text-slate-300">/</span>
+                                <span class="text-blue-600 font-bold">Tetra Data Platform (Container)</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold uppercase tracking-wide">Show AS-IS Instead</button>
+                                <button class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 border border-blue-200 rounded font-bold uppercase tracking-wide">Zoom Out</button>
+                            </div>
+                        </div>
+                        <div class="flex-1 mermaid-c4 flex items-center justify-center text-blue-400 relative">
+                            <!-- Mock interactive node -->
+                            <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-40 h-24 bg-blue-600 rounded-lg shadow-lg flex flex-col items-center justify-center text-white cursor-pointer hover:ring-4 hover:ring-blue-300 transition-all">
+                                <span class="font-bold text-sm">Data Pipeline</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Half: Sequence Side-by-Side -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col flex-1 overflow-hidden">
+                        <div class="p-3 border-b border-slate-100">
+                            <span class="font-bold text-slate-900 text-sm">Behavioral Flow (Sequence)</span>
+                        </div>
+                        <div class="flex-1 grid grid-cols-2 divide-x divide-slate-200">
+                            <div class="mermaid-mock flex flex-col items-center justify-center text-slate-400 text-sm relative">
+                                <div class="absolute top-2 left-2 bg-slate-100 px-2 py-1 rounded text-[10px] font-bold text-slate-500 uppercase">AS-IS</div>
+                                Sequence Diagram
+                            </div>
+                            <div class="mermaid-mock flex flex-col items-center justify-center text-slate-400 text-sm relative bg-slate-50/50">
+                                <div class="absolute top-2 left-2 bg-blue-100 px-2 py-1 rounded text-[10px] font-bold text-blue-700 uppercase">TO-BE</div>
+                                Sequence Diagram
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <!-- Refinement Chat is static on the right -->
+                <div class="w-80 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="p-4 border-b border-slate-100 font-semibold">Refinement Chat</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Option 3: Tabbed Sub-Navigation -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 p-6 border-b border-slate-200">
+                <h2 class="text-xl font-bold text-slate-900">Concept 3: Sidebar View Navigation</h2>
+                <p class="text-sm text-slate-600 mt-1">Moves the Refinement Chat to a bottom collapsible panel, and uses the right sidebar as a "View Controller" to switch between the AS-IS/TO-BE Sequences and the C4 Drill-down map.</p>
+            </div>
+            <div class="p-8 bg-slate-100 flex gap-6 h-[600px]">
+                <!-- Main Diagram Area (Currently showing C4) -->
+                <div class="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-blue-600 font-bold">C4 Structural Architecture</span>
+                        </div>
+                        <button class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-md transition-colors">Zoom Out Context</button>
+                    </div>
+                    <div class="flex-1 mermaid-c4 flex items-center justify-center">
+                        <div class="w-64 h-40 bg-blue-50 border-2 border-blue-400 rounded-xl shadow-[8px_8px_0_0_rgba(96,165,250,0.5)] flex items-center justify-center font-bold text-blue-800 text-lg cursor-pointer transform transition-transform hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[12px_12px_0_0_rgba(96,165,250,0.5)]">
+                            Double-Click Node
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- View Controller Sidebar -->
+                <div class="w-72 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col p-4 gap-6">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Structural Views</h4>
+                        <button class="w-full text-left px-3 py-2 bg-blue-50 text-blue-700 font-semibold rounded-md border border-blue-200 mb-2">C4 Drill-down Map</button>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Behavioral Views</h4>
+                        <button class="w-full text-left px-3 py-2 text-slate-600 hover:bg-slate-50 font-medium rounded-md mb-1 transition-colors group flex items-center justify-between">
+                            Sequence: AS-IS
+                            <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Compare</span>
+                        </button>
+                        <button class="w-full text-left px-3 py-2 text-slate-600 hover:bg-slate-50 font-medium rounded-md mb-1 transition-colors group flex items-center justify-between">
+                            Sequence: TO-BE
+                            <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Compare</span>
+                        </button>
+                        <button class="w-full text-left px-3 py-2 text-slate-600 hover:bg-slate-50 font-medium rounded-md transition-colors flex items-center gap-2">
+                            <div class="w-4 h-4 border border-slate-300 rounded-sm flex items-center justify-center divide-x divide-slate-300 rounded-[2px] overflow-hidden"><div class="flex-1 h-full bg-slate-200"></div><div class="flex-1 h-full"></div></div>
+                            AS-IS vs TO-BE Split
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</body>
+</html>

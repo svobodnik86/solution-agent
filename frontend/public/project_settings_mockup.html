@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solution Agent - Project Settings Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Custom Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #2563eb;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #2563eb;
+        }
+        .toggle-checkbox {
+            right: 0;
+            z-index: 1;
+            border-color: #e2e8f0;
+            transition: all 0.3s;
+        }
+        .toggle-label {
+            background-color: #cbd5e1;
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex">
+
+    <!-- Mock Sidebar -->
+    <div class="w-64 bg-white border-r border-slate-200 flex flex-col pt-6 shrink-0">
+        <div class="px-6 mb-8 flex items-center gap-3">
+            <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <span class="font-bold tracking-tight text-slate-900">Solution Agent</span>
+        </div>
+        
+        <div class="flex-1 px-4 space-y-1">
+            <div class="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Workspace</div>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-600 hover:bg-slate-50 font-medium transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                Dashboard
+            </a>
+            
+            <div class="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2">Current Project</div>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-600 hover:bg-slate-50 font-medium transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                Architecture View
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-md bg-blue-50 text-blue-700 font-bold transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Project Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
+        
+        <!-- Header -->
+        <header class="h-16 px-8 flex items-center bg-white border-b border-slate-200 shrink-0 shadow-sm">
+            <h1 class="text-xl font-bold text-slate-800">Settings: Lab Orchestration Pilot</h1>
+        </header>
+
+        <!-- Settings Content -->
+        <div class="flex-1 overflow-auto p-12">
+            <div class="max-w-4xl mx-auto space-y-10">
+                
+                <!-- Section: Project Details -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                        <h2 class="text-lg font-bold text-slate-900">General Information</h2>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Project Name</label>
+                            <input type="text" value="Lab Orchestration Pilot" class="w-full sm:w-96 px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Description</label>
+                            <textarea rows="3" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">Transitioning the laboratory from manual Excel workflows to an integrated, cloud-native scientific data orchestration model.</textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section: AI Output Preferences -->
+                <section class="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-blue-100 bg-blue-50/50 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                        <h2 class="text-lg font-bold text-blue-900">Architecture Output Preferences</h2>
+                    </div>
+                    
+                    <div class="p-6">
+                        <p class="text-sm text-slate-500 mb-6">Select which diagram formats the Solution Agent should generate when defining architectural milestones. Generating more formats gives deeper insight but may take slightly longer.</p>
+                        
+                        <div class="space-y-4">
+                            <!-- Toggle 1: Sequence -->
+                            <div class="flex items-start justify-between p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-slate-300 transition-colors">
+                                <div class="flex gap-4">
+                                    <div class="mt-1 w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 border border-indigo-100">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-slate-900">Behavioral: Sequence Diagrams</h3>
+                                        <p class="text-sm text-slate-500 mt-1">Visualize workflows over time. Generates side-by-side AS-IS and TO-BE flows showing actors, systems, and chronological interactions.</p>
+                                    </div>
+                                </div>
+                                <div class="ml-4 pt-2">
+                                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" name="toggle1" id="toggle1" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                        <label for="toggle1" class="toggle-label block overflow-hidden h-6 rounded-full bg-blue-600 cursor-pointer"></label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Toggle 2: C4 Map -->
+                            <div class="flex items-start justify-between p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-slate-300 transition-colors">
+                                <div class="flex gap-4">
+                                    <div class="mt-1 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-slate-900">Structural: C4 Architecture Maps</h3>
+                                        <p class="text-sm text-slate-500 mt-1">Visualize structural boundaries. Generates interactive drill-down maps spanning System Context, Container, and Component levels.</p>
+                                    </div>
+                                </div>
+                                <div class="ml-4 pt-2">
+                                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" name="toggle2" id="toggle2" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                        <label for="toggle2" class="toggle-label block overflow-hidden h-6 rounded-full bg-blue-600 cursor-pointer"></label>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-3 pt-6 border-t border-slate-200">
+                    <button class="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors">Discard Changes</button>
+                    <button class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        Save Settings
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

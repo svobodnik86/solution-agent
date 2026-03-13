@@ -6,6 +6,7 @@ class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
     working_notes: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = {"generate_sequence": True, "generate_c4": False}
 
 class ProjectCreate(ProjectBase):
     pass
@@ -14,12 +15,20 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     working_notes: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = None
+
+class ProjectSettingsUpdate(BaseModel):
+    generate_sequence: bool
+    generate_c4: bool
 
 class TimestampBase(BaseModel):
     project_id: int
     name: str = "New Iteration"
     as_is_diagram: Optional[str] = None
     to_be_diagram: Optional[str] = None
+    c4_context: Optional[str] = None
+    c4_container: Optional[str] = None
+    c4_component: Optional[str] = None
     architecture_summary: Optional[str] = None
     key_questions: Optional[List[str]] = None
     pending_tasks: Optional[List[Any]] = None

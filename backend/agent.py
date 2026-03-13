@@ -121,11 +121,14 @@ class AgentOrchestrator:
         if previous_ts:
             full_context = f"Previous Architecture State:\nAS-IS: {previous_ts.as_is_diagram}\nTO-BE: {previous_ts.to_be_diagram}\n\n{full_context}"
 
+        preferences = project.preferences or {"generate_sequence": True, "generate_c4": False}
+
         snapshot = await self.llm.generate_architecture_snapshot(
             context=full_context, 
             profile_context=profile_context,
             model_override=llm_model,
-            api_key_override=llm_api_key
+            api_key_override=llm_api_key,
+            preferences=preferences
         )
 
         new_ts = Timestamp(
@@ -133,6 +136,9 @@ class AgentOrchestrator:
             name=name,
             as_is_diagram=snapshot.get("as_is_diagram", ""),
             to_be_diagram=snapshot.get("to_be_diagram", ""),
+            c4_context=snapshot.get("c4_context", ""),
+            c4_container=snapshot.get("c4_container", ""),
+            c4_component=snapshot.get("c4_component", ""),
             architecture_summary=snapshot.get("architecture_summary", ""),
             key_questions=snapshot.get("key_questions", []),
             pending_tasks=snapshot.get("pending_tasks", [])
@@ -161,6 +167,9 @@ class AgentOrchestrator:
         current_state = {
             "as_is_diagram": ts.as_is_diagram,
             "to_be_diagram": ts.to_be_diagram,
+            "c4_context": ts.c4_context,
+            "c4_container": ts.c4_container,
+            "c4_component": ts.c4_component,
             "architecture_summary": ts.architecture_summary,
             "key_questions": ts.key_questions,
             "pending_tasks": ts.pending_tasks
@@ -186,12 +195,15 @@ class AgentOrchestrator:
         {feedback}
         """
 
+        preferences = project.preferences if project else {"generate_sequence": True, "generate_c4": False}
+
         refined_data = await self.llm.refine_draft(
             current_state, 
             enriched_feedback,
             profile_context=profile_context,
             model_override=llm_model,
-            api_key_override=llm_api_key
+            api_key_override=llm_api_key,
+            preferences=preferences
         )
 
         # Update history
@@ -203,6 +215,9 @@ class AgentOrchestrator:
 
         ts.as_is_diagram = refined_data.get("as_is_diagram", ts.as_is_diagram)
         ts.to_be_diagram = refined_data.get("to_be_diagram", ts.to_be_diagram)
+        ts.c4_context = refined_data.get("c4_context", ts.c4_context)
+        ts.c4_container = refined_data.get("c4_container", ts.c4_container)
+        ts.c4_component = refined_data.get("c4_component", ts.c4_component)
         ts.architecture_summary = refined_data.get("architecture_summary", ts.architecture_summary)
         ts.key_questions = refined_data.get("key_questions", ts.key_questions)
         ts.pending_tasks = refined_data.get("pending_tasks", ts.pending_tasks)

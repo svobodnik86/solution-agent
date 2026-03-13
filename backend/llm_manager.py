@@ -21,6 +21,25 @@ class LLMManager:
         Generates AS-IS/TO-BE diagrams and summary from raw context.
         """
         model = model_override or self.default_model
+        preferences = preferences or {"generate_sequence": True, "generate_c4": False}
+        
+        c4_instructions = ""
+        c4_schema = ""
+        if preferences.get("generate_c4", False):
+            c4_instructions = "You must also generate structural C4 models (Context, Container, Component levels) using valid Mermaid syntax (e.g., C4Context, C4Container, C4Component)."
+            c4_schema = '''
+            "c4_context": "A Mermaid C4Context diagram string.",
+            "c4_container": "A Mermaid C4Container diagram string.",
+            "c4_component": "A Mermaid C4Component diagram string.",'''
+            
+        sequence_instructions = ""
+        sequence_schema = ""
+        if preferences.get("generate_sequence", True):
+            sequence_instructions = "You must generate behavioral sequence diagrams using valid Mermaid format representing the AS-IS and TO-BE states."
+            sequence_schema = '''
+            "as_is_diagram": "A Mermaid sequence diagram string representing the current state.",
+            "to_be_diagram": "A Mermaid sequence diagram string representing the proposed future state.",'''
+
         system_prompt = f"""
         You are an expert Solution Architect. 
         Your goal is to parse the provided context and generate a structured architectural snapshot.
@@ -29,15 +48,16 @@ class LLMManager:
         The following standards MUST be applied to the TO-BE architecture and summary. If they conflict with the current state, prioritized these standards:
         {profile_context}
         
+        {sequence_instructions}
+        {c4_instructions}
+        
         You MUST return valid JSON matching this schema:
-        {{
-            "as_is_diagram": "A Mermaid sequence diagram string representing the current state.",
-            "to_be_diagram": "A Mermaid sequence diagram string representing the proposed future state.",
+        {{  {sequence_schema}{c4_schema}
             "architecture_summary": "A detailed markdown summary of the architecture.",
             "key_questions": ["A list of outstanding questions for the client."],
             "pending_tasks": ["A list of tasks to be followed up."]
         }}
-        Ensure the output is strictly valid JSON.
+        Fields you are not asked to generate should be omitted or null. Ensure the output is strictly valid JSON.
         """
 
         user_prompt = f"""
@@ -79,6 +99,8 @@ class LLMManager:
         Refines the current architecture state based on user feedback.
         """
         model = model_override or self.default_model
+        preferences = preferences or {"generate_sequence": True, "generate_c4": False}
+        
         prompt = f"""
         You are an expert Solution Architect. 
         GLOBAL ARCHITECT CONSTRAINTS & STANDARDS (MANDATORY):
@@ -92,7 +114,8 @@ class LLMManager:
         {feedback}
 
         Update the architectural state based on this feedback while STRICTLY adhering to the GLOBAL ARCHITECT CONSTRAINTS. 
-        Return the updated JSON object with the same keys: as_is_diagram, to_be_diagram, architecture_summary, key_questions, pending_tasks.
+        Return the updated JSON object preserving the same keys present in the current state.
+        Your generation of C4 or Sequence diagrams should depend entirely on what is requested in the feedback and what exists in the current state.
         """
 
         try:

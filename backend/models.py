@@ -10,6 +10,7 @@ class Project(Base):
     name = Column(String, unique=True, index=True)
     description = Column(Text, nullable=True)
     working_notes = Column(Text, nullable=True)
+    preferences = Column(JSON, default=lambda: {"generate_sequence": True, "generate_c4": False})
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.UTC))
 
     timestamps = relationship("Timestamp", back_populates="project", cascade="all, delete-orphan")
@@ -23,6 +24,9 @@ class Timestamp(Base):
     name = Column(String, default="New Iteration")
     as_is_diagram = Column(Text, nullable=True)
     to_be_diagram = Column(Text, nullable=True)
+    c4_context = Column(Text, nullable=True)
+    c4_container = Column(Text, nullable=True)
+    c4_component = Column(Text, nullable=True)
     architecture_summary = Column(Text, nullable=True)
     key_questions = Column(JSON, nullable=True)
     pending_tasks = Column(JSON, nullable=True)

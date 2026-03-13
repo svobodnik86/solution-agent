@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { LayoutDashboard, FileText, Briefcase, ChevronRight, Send, PlusCircle, Loader2, Check, Trash2, Edit2, Save, X, Eye } from 'lucide-react'
+import { LayoutDashboard, FileText, Briefcase, ChevronRight, Send, PlusCircle, Loader2, Check, Trash2, Edit2, Save, X, Eye, Settings } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,7 @@ import { api } from '@/lib/api'
 import { useProject } from '@/contexts/ProjectContext'
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'diagrams' | 'summary' | 'workspace'>('diagrams')
+  const [activeTab, setActiveTab] = useState<'diagrams' | 'summary' | 'workspace' | 'settings'>('diagrams')
   const { project, timestamps, setTimestamps, activeTimestamp, setActiveTimestamp, loading, setProject } = useProject()
   
   const [generating, setGenerating] = useState(false)
@@ -26,6 +26,12 @@ export default function DashboardPage() {
   const [editingContextId, setEditingContextId] = useState<string | null>(null)
   const [editingContextName, setEditingContextName] = useState('')
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+  
+  const [viewMode, setViewMode] = useState<'behavioral' | 'structural'>('behavioral')
+  const [c4Level, setC4Level] = useState<'context' | 'container' | 'component'>('context')
+  const [prefSequence, setPrefSequence] = useState(true)
+  const [prefC4, setPrefC4] = useState(false)
+  const [savingSettings, setSavingSettings] = useState(false)
 
   const fetchContexts = React.useCallback(async () => {
     if (!project) return
@@ -41,12 +47,14 @@ export default function DashboardPage() {
     fetchContexts()
   }, [fetchContexts])
 
-  // Load project-specific notes
+  // Load project-specific notes and settings
   React.useEffect(() => {
     if (project) {
       setWorkspaceNotes(project.working_notes || '')
+      setPrefSequence(project.preferences?.generate_sequence ?? true)
+      setPrefC4(project.preferences?.generate_c4 ?? false)
     }
-  }, [project?.id])
+  }, [project])
 
   const handleIngestNotes = async () => {
     if (!project || !workspaceNotes.trim()) return
@@ -62,6 +70,21 @@ export default function DashboardPage() {
       console.error("Ingest notes failed:", err)
     } finally {
       setSavingNotes(false)
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    if (!project) return;
+    setSavingSettings(true)
+    try {
+      const updated = await api.updateProjectSettings(project.id, { generate_sequence: prefSequence, generate_c4: prefC4 })
+      setProject(updated)
+      setShowSaved(true)
+      setTimeout(() => setShowSaved(false), 3000)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSavingSettings(false)
     }
   }
 
@@ -134,6 +157,7 @@ export default function DashboardPage() {
     { id: 'diagrams', label: 'Diagrams', icon: LayoutDashboard },
     { id: 'summary', label: 'Summary & Tasks', icon: FileText },
     { id: 'workspace', label: 'Workspace / Draft', icon: Briefcase },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ]
 
   if (loading) {
@@ -178,35 +202,101 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-hidden flex">
         <div className="flex-1 overflow-y-auto flex flex-col">
         {activeTab === 'diagrams' && (
-          <div className="flex-1 p-8 grid grid-cols-2 gap-8 overflow-auto">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="font-semibold text-slate-900">AS-IS Architecture</h3>
-              </div>
-              <div className="flex-1 bg-slate-50/50 flex items-center justify-center p-8 overflow-auto min-h-[400px]">
-                {activeTimestamp?.as_is_diagram ? (
-                  <Mermaid chart={activeTimestamp.as_is_diagram} id="as-is-mermaid" />
-                ) : (
-                  <div className="text-slate-400 text-sm italic font-mono px-12 text-center">
-                    No diagram generated. Go to Workspace to provide notes and generate an analysis.
-                  </div>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex flex-col border-b border-slate-200 bg-white shrink-0">
+                <div className="p-4 flex items-center justify-center relative">
+                    <div className="bg-slate-100 p-1 rounded-full flex mx-auto">
+                        <button 
+                            onClick={() => setViewMode('behavioral')}
+                            className={cn("px-6 py-2 rounded-full text-sm font-bold transition-all", viewMode === 'behavioral' ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        >
+                            Behavioral (Sequence)
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('structural')}
+                            className={cn("px-6 py-2 rounded-full text-sm font-bold transition-all", viewMode === 'structural' ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        >
+                            Structural (C4 Map)
+                        </button>
+                    </div>
+                </div>
+
+                {viewMode === 'structural' && (
+                <div className="px-4 py-2 bg-slate-50 flex items-center justify-center gap-2 border-t border-slate-200 shadow-inner">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Depth:</span>
+                    {['context', 'container', 'component'].map(level => (
+                        <button 
+                            key={level}
+                            onClick={() => setC4Level(level as any)}
+                            className={cn("px-4 py-1.5 rounded-md text-sm font-semibold transition-colors border", c4Level === level ? "bg-white border-slate-300 text-slate-800 shadow-sm" : "border-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-800")}
+                        >
+                            {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </button>
+                    ))}
+                </div>
                 )}
-              </div>
             </div>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="font-semibold text-slate-900">TO-BE Architecture</h3>
-              </div>
-              <div className="flex-1 bg-slate-50/50 flex items-center justify-center p-8 overflow-auto min-h-[400px]">
-                {activeTimestamp?.to_be_diagram ? (
-                  <Mermaid chart={activeTimestamp.to_be_diagram} id="to-be-mermaid" />
-                ) : (
-                  <div className="text-slate-400 text-sm italic font-mono px-12 text-center">
-                    No diagram generated. Go to Workspace to provide notes and generate an analysis.
+
+            {viewMode === 'behavioral' ? (
+              <div className="flex-1 p-8 grid grid-cols-2 gap-8 overflow-auto">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                  <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-900">AS-IS Architecture</h3>
                   </div>
-                )}
+                  <div className="flex-1 bg-slate-50/50 flex items-center justify-center p-8 overflow-auto min-h-[400px]">
+                    {activeTimestamp?.as_is_diagram ? (
+                      <Mermaid chart={activeTimestamp.as_is_diagram} id="as-is-mermaid" />
+                    ) : (
+                      <div className="text-slate-400 text-sm italic font-mono px-12 text-center">
+                        No diagram generated. Go to Workspace to provide notes and generate an analysis.
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                  <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-900">TO-BE Architecture</h3>
+                  </div>
+                  <div className="flex-1 bg-slate-50/50 flex items-center justify-center p-8 overflow-auto min-h-[400px]">
+                    {activeTimestamp?.to_be_diagram ? (
+                      <Mermaid chart={activeTimestamp.to_be_diagram} id="to-be-mermaid" />
+                    ) : (
+                      <div className="text-slate-400 text-sm italic font-mono px-12 text-center">
+                        No diagram generated. Go to Workspace to provide notes and generate an analysis.
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex-1 p-8 overflow-auto flex flex-col">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col flex-1 min-h-[600px]">
+                      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                          <h3 className="font-semibold text-slate-900">
+                              C4 Architecture - System {c4Level.charAt(0).toUpperCase() + c4Level.slice(1)}
+                          </h3>
+                      </div>
+                      <div className="flex-1 bg-white flex flex-col p-8 overflow-auto relative">
+                          {activeTimestamp ? (
+                              activeTimestamp[`c4_${c4Level}` as keyof typeof activeTimestamp] ? (
+                                  <Mermaid chart={activeTimestamp[`c4_${c4Level}` as keyof typeof activeTimestamp] as string} id={`c4-${c4Level}-mermaid`} />
+                              ) : (
+                                  <div className="absolute inset-0 flex items-center justify-center flex-col text-slate-400 bg-slate-50/50">
+                                      <p className="font-medium text-lg text-slate-500 mb-2">No C4 Diagram</p>
+                                      <p className="text-sm max-w-md text-center">
+                                          This generated milestone doesn't include C4 output. Make sure <strong>Structural C4 Maps</strong> are enabled in <strong>Project Settings</strong> and then run a new generation.
+                                      </p>
+                                  </div>
+                              )
+                          ) : (
+                              <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm italic font-mono px-12 text-center bg-slate-50/50">
+                                  No diagram generated yet.
+                              </div>
+                          )}
+                      </div>
+                  </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -477,6 +567,70 @@ export default function DashboardPage() {
                     </button>
                  </div>
               </div>
+          </div>
+        )}
+        {activeTab === 'settings' && (
+          <div className="flex-1 overflow-auto p-12 bg-slate-50">
+            <div className="max-w-4xl mx-auto space-y-10">
+                <section className="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden anim-in fade-in slide-in-from-bottom-4">
+                    <div className="px-6 py-4 border-b border-blue-100 bg-blue-50/50 flex items-center gap-2">
+                        <Settings className="text-blue-600" size={18} />
+                        <h2 className="text-lg font-bold text-blue-900">Architecture Output Preferences</h2>
+                    </div>
+                    
+                    <div className="p-6">
+                        <p className="text-sm text-slate-500 mb-6">Select which diagram formats the Solution Agent should generate when defining architectural milestones. Generating more formats gives deeper insight but may take slightly longer.</p>
+                        
+                        <div className="space-y-4">
+                            {/* Sequence */}
+                            <div className="flex items-start justify-between p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-slate-300 transition-colors">
+                                <div className="flex gap-4">
+                                    <div className="mt-1 w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 border border-indigo-100 text-indigo-600">
+                                        <LayoutDashboard size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900">Behavioral: Sequence Diagrams</h3>
+                                        <p className="text-sm text-slate-500 mt-1">Visualize workflows over time. Generates side-by-side AS-IS and TO-BE flows.</p>
+                                    </div>
+                                </div>
+                                <div className="ml-4 pt-2">
+                                    <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" checked={prefSequence} onChange={() => setPrefSequence(!prefSequence)} className="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" style={{ right: prefSequence ? 0 : '1.5rem', borderColor: prefSequence ? '#2563eb' : '#e2e8f0', transition: 'all 0.3s' }}/>
+                                        <label className="block overflow-hidden h-6 rounded-full cursor-pointer" style={{ backgroundColor: prefSequence ? '#2563eb' : '#cbd5e1', transition: 'all 0.3s' }} onClick={() => setPrefSequence(!prefSequence)}></label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* C4 Map */}
+                            <div className="flex items-start justify-between p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-slate-300 transition-colors">
+                                <div className="flex gap-4">
+                                    <div className="mt-1 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100 text-blue-600">
+                                        <Briefcase size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900">Structural: C4 Architecture Maps</h3>
+                                        <p className="text-sm text-slate-500 mt-1">Visualize structural boundaries. Generates interactive drill-down maps spanning Context, Container, and Component levels.</p>
+                                    </div>
+                                </div>
+                                <div className="ml-4 pt-2">
+                                    <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" checked={prefC4} onChange={() => setPrefC4(!prefC4)} className="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" style={{ right: prefC4 ? 0 : '1.5rem', borderColor: prefC4 ? '#2563eb' : '#e2e8f0', transition: 'all 0.3s' }}/>
+                                        <label className="block overflow-hidden h-6 rounded-full cursor-pointer" style={{ backgroundColor: prefC4 ? '#2563eb' : '#cbd5e1', transition: 'all 0.3s' }} onClick={() => setPrefC4(!prefC4)}></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
+                    {showSaved && <span className="text-green-600 text-sm font-bold flex items-center mr-4">Preferences Saved!</span>}
+                    <button onClick={handleSaveSettings} disabled={savingSettings} className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50">
+                        {savingSettings ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
+                        Save Settings
+                    </button>
+                </div>
+            </div>
           </div>
         )}
         </div>

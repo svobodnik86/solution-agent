@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-03-12
+
+### Added
+- **C4 Diagrams:** Implemented LLM generation and structural visualization for C4 Context, Container, and Component map levels.
+- **Diagram View Toggle:** Added a pill-style navigation header to the diagrams tab to switch seamlessly between Behavioral (Sequence) and Structural (C4) outputs.
+- **Project Settings:** Added a "Settings" tab that allows users to independently disable or enable behavioral vs structural diagram generation for faster drafting.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

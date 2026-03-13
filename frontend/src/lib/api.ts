@@ -5,6 +5,10 @@ export interface Project {
   name: string
   description?: string
   working_notes?: string
+  preferences?: {
+    generate_sequence: boolean;
+    generate_c4: boolean;
+  }
   created_at: string
 }
 
@@ -14,6 +18,9 @@ export interface Timestamp {
   name: string
   as_is_diagram?: string
   to_be_diagram?: string
+  c4_context?: string
+  c4_container?: string
+  c4_component?: string
   architecture_summary?: string
   key_questions?: string[]
   pending_tasks?: any[]
@@ -51,6 +58,16 @@ export const api = {
       body: JSON.stringify(data)
     })
     if (!res.ok) throw new Error('Failed to update project')
+    return res.json()
+  },
+
+  async updateProjectSettings(id: number, settings: { generate_sequence: boolean; generate_c4: boolean }): Promise<Project> {
+    const res = await fetch(`${API_BASE_URL}/projects/${id}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    })
+    if (!res.ok) throw new Error('Failed to update project settings')
     return res.json()
   },
 

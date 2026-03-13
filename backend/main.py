@@ -139,6 +139,21 @@ def update_project(project_id: int, project: schemas.ProjectUpdate, db: Session 
     db.refresh(db_project)
     return db_project
 
+@app.patch("/projects/{project_id}/settings", response_model=schemas.Project)
+def update_project_settings(project_id: int, settings: schemas.ProjectSettingsUpdate, db: Session = Depends(get_db)):
+    db_project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    db_project.preferences = {
+        "generate_sequence": settings.generate_sequence,
+        "generate_c4": settings.generate_c4
+    }
+    
+    db.commit()
+    db.refresh(db_project)
+    return db_project
+
 # --- Timestamp & Agent Routes ---
 
 @app.post("/projects/{project_id}/ingest")
