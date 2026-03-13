@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from litellm import completion
 from dotenv import load_dotenv
 
@@ -15,7 +15,8 @@ class LLMManager:
         context: str, 
         profile_context: str = "",
         model_override: str = None,
-        api_key_override: str = None
+        api_key_override: str = None,
+        preferences: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Generates AS-IS/TO-BE diagrams and summary from raw context.
@@ -26,7 +27,11 @@ class LLMManager:
         c4_instructions = ""
         c4_schema = ""
         if preferences.get("generate_c4", False):
-            c4_instructions = "You must also generate structural C4 models (Context, Container, Component levels) using valid Mermaid syntax (e.g., C4Context, C4Container, C4Component)."
+            c4_instructions = (
+                "You must also generate structural C4 models (Context, Container, Component levels) using valid Mermaid syntax (e.g., C4Context, C4Container, C4Component). "
+                "CRITICAL MERMAID RULE: In C4 diagrams, every single system, container, or component referenced in a Rel() MUST be explicitly declared first "
+                "using System(), System_Ext(), Container(), Component(), etc., before creating relationships. Do not use undeclared aliases in Rel() statements."
+            )
             c4_schema = '''
             "c4_context": "A Mermaid C4Context diagram string.",
             "c4_container": "A Mermaid C4Container diagram string.",
@@ -93,7 +98,8 @@ class LLMManager:
         feedback: str,
         profile_context: str = "",
         model_override: str = None,
-        api_key_override: str = None
+        api_key_override: str = None,
+        preferences: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Refines the current architecture state based on user feedback.
@@ -106,6 +112,8 @@ class LLMManager:
         GLOBAL ARCHITECT CONSTRAINTS & STANDARDS (MANDATORY):
         The following standards MUST be maintained in the refined state:
         {profile_context}
+
+        CRITICAL MERMAID RULE: If you generate or modify C4 diagrams, every single system, container, or component referenced in a Rel() MUST be explicitly declared first using System(), System_Ext(), Container(), Component(), etc., before creating relationships. Do not use undeclared aliases in Rel() statements.
 
         Current Architectural State:
         {json.dumps(current_state, indent=2)}

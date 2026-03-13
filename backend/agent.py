@@ -58,7 +58,7 @@ class AgentOrchestrator:
             raise ValueError("Context not found for this project.")
             
         index = results["ids"].index(doc_id)
-        current_metadata = results["metadatas"][index] or {}
+        current_metadata = dict(results["metadatas"][index] or {})
         current_metadata["name"] = new_name
         
         await self.vector_store.update_document_metadata(doc_id, current_metadata)

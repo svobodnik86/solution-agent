@@ -33,7 +33,10 @@ export default function Mermaid({ chart, id = 'mermaid-chart' }: MermaidProps) {
   useEffect(() => {
     if (containerRef.current && chart) {
       setError(null)
-      mermaid.render(id, chart).then(({ svg }) => {
+      // Mermaid requires a globally unique ID for its temporary rendering SVG, 
+      // otherwise switching tabs rapidly causes it to collide with un-garbage-collected DOM nodes.
+      const renderId = `mermaid-${id}-${Math.random().toString(36).substr(2, 9)}`
+      mermaid.render(renderId, chart).then(({ svg }) => {
         setSvg(svg)
       }).catch((err) => {
         console.error('Mermaid rendering failed:', err)
