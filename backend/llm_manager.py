@@ -161,17 +161,30 @@ class LLMManager:
                 f"[Source: {name}]\n{chunk}"
                 for name, chunk in zip(context_names, context_chunks)
             )
-            system_prompt = f"""You are a knowledgeable assistant with access to a project's context documents.
-Answer the user's question using ONLY the provided context passages below.
-Always mention the source name when referencing a specific piece of information (e.g., "According to [Source: X]...").
-If the context does not contain enough information to answer, say so clearly — do not hallucinate.
+            system_prompt = f"""You are a knowledgeable assistant helping with a solution architecture project.
+You have access to the following project context documents. Use them as your primary source of information.
+When you reference information from these documents, mention the source name (e.g., "According to [Source: X]...").
+If the project context doesn't fully cover the question, you may supplement with your own general knowledge — but clearly distinguish what comes from the context versus your general knowledge.
 
 PROJECT CONTEXT:
 {context_block}
+
+IMPORTANT: Respond with a JSON object in this exact format:
+{{"answer": "<your full markdown answer here>", "used_context": true or false}}
+
+Rules for used_context:
+- Set to TRUE only if your answer contains substantive information that came FROM the project context documents (e.g., you cited a specific fact, name, or detail from them using [Source: X]).
+- Set to FALSE if the context documents did NOT contain relevant information and your substantive answer is based on your own general knowledge — even if you mentioned that the context lacked the answer.
+- Merely checking the context and finding it empty does NOT count as using the context. Answering "based on my general knowledge" must set used_context to false.
 """
         else:
-            system_prompt = """You are a knowledgeable assistant. No project context was found relevant to this question.
-Answer based on your general knowledge and clearly state that your answer is not based on the project's documents."""
+            system_prompt = """You are a knowledgeable assistant helping with a solution architecture project.
+No relevant project context was found for this question. Answer using your general knowledge and be genuinely helpful.
+At the end of your answer, briefly note that this answer is based on your general training knowledge, not the project's documents.
+
+IMPORTANT: Respond with a JSON object in this exact format:
+{"answer": "<your full markdown answer here>", "used_context": false}
+"""
 
         messages = [{"role": "system", "content": system_prompt}]
         for msg in history:
@@ -184,9 +197,13 @@ Answer based on your general knowledge and clearly state that your answer is not
                 model=model,
                 api_key=api_key_override,
                 messages=messages,
+                response_format={"type": "json_object"},
             )
-            answer = response.choices[0].message.content
-            source_type = "context" if has_context else "llm"
+            raw = response.choices[0].message.content
+            parsed = json.loads(raw)
+            answer = parsed.get("answer", raw)
+            used_context = parsed.get("used_context", has_context)
+            source_type = "context" if used_context else "llm"
             return {"answer": answer, "source_type": source_type}
         except Exception as e:
             raise RuntimeError(f"LLM Context Chat Failed: {str(e)}")
