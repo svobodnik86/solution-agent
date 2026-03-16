@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className={`${inter.className} h-full bg-white text-slate-900`}>
+      <body suppressHydrationWarning className={`${inter.className} h-full bg-white text-slate-900`}>
         <ProjectProvider>
           <div className="flex h-screen overflow-hidden">
             <Sidebar />

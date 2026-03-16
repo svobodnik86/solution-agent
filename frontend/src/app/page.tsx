@@ -10,7 +10,7 @@ import { api } from '@/lib/api'
 import { useProject } from '@/contexts/ProjectContext'
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'diagrams' | 'summary' | 'workspace' | 'settings'>('diagrams')
+  const [activeTab, setActiveTab] = useState<'diagrams' | 'summary' | 'workspace' | 'project-config'>('diagrams')
   const { project, timestamps, setTimestamps, activeTimestamp, setActiveTimestamp, loading, setProject } = useProject()
   
   const [generating, setGenerating] = useState(false)
@@ -157,7 +157,7 @@ export default function DashboardPage() {
     { id: 'diagrams', label: 'Diagrams', icon: LayoutDashboard },
     { id: 'summary', label: 'Summary & Tasks', icon: FileText },
     { id: 'workspace', label: 'Workspace / Draft', icon: Briefcase },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'project-config', label: 'Project Config', icon: Settings },
   ]
 
   if (loading) {
@@ -569,13 +569,13 @@ export default function DashboardPage() {
               </div>
           </div>
         )}
-        {activeTab === 'settings' && (
+        {activeTab === 'project-config' && (
           <div className="flex-1 overflow-auto p-12 bg-slate-50">
             <div className="max-w-4xl mx-auto space-y-10">
                 <section className="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden anim-in fade-in slide-in-from-bottom-4">
                     <div className="px-6 py-4 border-b border-blue-100 bg-blue-50/50 flex items-center gap-2">
                         <Settings className="text-blue-600" size={18} />
-                        <h2 className="text-lg font-bold text-blue-900">Architecture Output Preferences</h2>
+                        <h2 className="text-lg font-bold text-blue-900">Project Configuration</h2>
                     </div>
                     
                     <div className="p-6">

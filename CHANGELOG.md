@@ -2,13 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.4.1] - 2026-03-13
-
-### Fixed
-- **LLM Refinement State**: Fixed `TypeError` in backend during the generation step where the `preferences` parameter was omitted from function calls.
-- **C4 Diagram Syntax Syntax**: Enforced strict element declarations for structural C4 maps in the LLM System Prompt to eliminate `Cannot read properties of undefined` syntax errors during diagram rendering.
-- **UI State Issue**: Patched a DOM node caching issue in Mermaid.js where switching between C4 and Sequence views caused the TO-BE diagram to render as a blank white screen.
-
 ## [0.4.0] - 2026-03-12
 
 ### Added

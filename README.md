@@ -8,8 +8,7 @@ An AI-powered workflow tool for Solution Architects (SAs) to synthesize meeting 
 
 ## Key Features
 - **Project Timeline**: Track architectural evolution over time.
-- **Project Settings**: Allow users to toggle generation of "Behavioral" and "Structural" design diagrams.
-- **Automated Diagramming**: Generates AS-IS and TO-BE Mermaid Sequence diagrams and nested C4 Architecture Maps (Context, Container, Component).
+- **Automated Diagramming**: Generates AS-IS and TO-BE Mermaid sequence diagrams from unstructured context.
 - **Knowledge Ingestion**: RAG-based context retrieval using ChromaDB.
 - **Architectural Summaries**: AI-generated reports including key questions and pending tasks.
 - **Model Agnostic**: Supports diverse LLMs (optimized for Gemini 2.0/3.0 Flash) via LiteLLM.

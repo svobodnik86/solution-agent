@@ -41,7 +41,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, description })
     })
-    if (!res.ok) throw new Error('Failed to create project')
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      throw new Error(errBody.detail || 'Failed to create project')
+    }
     return res.json()
   },
 
