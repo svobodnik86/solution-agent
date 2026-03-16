@@ -5,6 +5,55 @@ from ingestion import IngestionManager
 from vector_store import VectorStore
 from typing import Dict, Any, List
 import datetime
+import re
+import httpx
+from html.parser import HTMLParser
+
+class _HTMLTextExtractor(HTMLParser):
+    """Minimal HTML-to-text stripper."""
+    def __init__(self):
+        super().__init__()
+        self._parts: List[str] = []
+        self._skip_tags = {"script", "style", "head", "noscript"}
+        self._skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self._skip_tags:
+            self._skip += 1
+
+    def handle_endtag(self, tag):
+        if tag in self._skip_tags:
+            self._skip = max(0, self._skip - 1)
+
+    def handle_data(self, data):
+        if self._skip == 0 and data.strip():
+            self._parts.append(data.strip())
+
+    def get_text(self) -> str:
+        return " ".join(self._parts)
+
+
+def _extract_urls(text: str) -> List[str]:
+    return re.findall(r'https?://[^\s<>"]+', text)
+
+
+async def _fetch_url_text(url: str) -> str:
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            r = await client.get(url, headers={"User-Agent": "SolutionAgent/1.0"})
+            r.raise_for_status()
+            ct = r.headers.get("content-type", "")
+            if "html" in ct:
+                parser = _HTMLTextExtractor()
+                parser.feed(r.text)
+                text = parser.get_text()
+            else:
+                text = r.text
+            # Truncate to avoid token overload
+            return text[:8000]
+    except Exception as e:
+        return f"[Could not fetch URL: {e}]"
+
 
 class AgentOrchestrator:
     def __init__(self, db: Session):
@@ -69,6 +118,85 @@ class AgentOrchestrator:
             raise ValueError("Context not found for this project.")
             
         await self.vector_store.delete_document(doc_id)
+
+    async def context_chat(
+        self,
+        project_id: int,
+        question: str,
+        history: List[Dict[str, str]]
+    ) -> Dict[str, Any]:
+        """
+        Answers a question grounded in project context + any URLs mentioned in the question.
+        Returns answer, sources list, and source_type.
+        """
+        profile = self.db.query(Profile).first()
+        llm_model = profile.llm_model if profile else None
+        llm_api_key = profile.llm_api_key if profile else None
+
+        # 1. RAG: retrieve relevant project context chunks
+        rag_results = await self.vector_store.query_documents(
+            query_texts=[question],
+            n_results=5,
+            where={"project_id": project_id}
+        )
+
+        chunks: List[str] = []
+        names: List[str] = []
+        sources = []
+
+        if rag_results and rag_results.get("documents"):
+            docs = [d for sublist in rag_results["documents"] for d in sublist]
+            metas = [m for sublist in rag_results.get("metadatas", [[]]) for m in sublist]
+            ids = [i for sublist in rag_results.get("ids", [[]]) for i in sublist]
+            for doc, meta, doc_id in zip(docs, metas, ids):
+                chunks.append(doc)
+                name = meta.get("name", "Unknown") if meta else "Unknown"
+                names.append(name)
+                sources.append({
+                    "id": doc_id,
+                    "name": name,
+                    "provider": meta.get("provider", "unknown") if meta else "unknown",
+                    "timestamp": meta.get("timestamp", "") if meta else ""
+                })
+
+        # 2. URL detection: fetch any URLs mentioned in the question
+        urls = _extract_urls(question)
+        url_source_type = None
+        for url in urls:
+            page_text = await _fetch_url_text(url)
+            chunks.append(page_text)
+            names.append(url)
+            sources.append({
+                "id": f"url_{url}",
+                "name": url,
+                "provider": "web_url",
+                "timestamp": datetime.datetime.now().isoformat()
+            })
+            url_source_type = "web"
+
+        # 3. Call LLM
+        result = await self.llm.context_chat(
+            question=question,
+            context_chunks=chunks,
+            context_names=names,
+            history=history,
+            model_override=llm_model,
+            api_key_override=llm_api_key,
+        )
+
+        # 4. Determine final source_type
+        if url_source_type and not (rag_results and rag_results.get("documents")):
+            source_type = "web"
+        elif url_source_type:
+            source_type = "web"  # URL overrides if present
+        else:
+            source_type = result["source_type"]
+
+        return {
+            "answer": result["answer"],
+            "sources": sources,
+            "source_type": source_type
+        }
 
 
     async def ingest_and_generate(self, project_id: int, provider_type: str, metadata: Dict[str, Any]) -> Timestamp:

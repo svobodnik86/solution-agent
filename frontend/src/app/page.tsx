@@ -1,17 +1,19 @@
 "use client"
 
 import React, { useState } from 'react'
-import { LayoutDashboard, FileText, Briefcase, ChevronRight, Send, PlusCircle, Loader2, Check, Trash2, Edit2, Save, X, Eye, Settings } from 'lucide-react'
+import { LayoutDashboard, FileText, Briefcase, ChevronRight, Send, PlusCircle, Loader2, Check, Trash2, Edit2, Save, X, Eye, Settings, BookOpen, Brain } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
 import Mermaid from '@/components/Mermaid'
 import { api } from '@/lib/api'
 import { useProject } from '@/contexts/ProjectContext'
+import { ContextChat } from '@/components/ContextChat'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'diagrams' | 'summary' | 'workspace' | 'project-config'>('diagrams')
   const { project, timestamps, setTimestamps, activeTimestamp, setActiveTimestamp, loading, setProject } = useProject()
+  const [chatMode, setChatMode] = useState<'refinement' | 'context'>('refinement')
   
   const [generating, setGenerating] = useState(false)
   const [refining, setRefining] = useState(false)
@@ -635,60 +637,105 @@ export default function DashboardPage() {
         )}
         </div>
 
-        {/* Global Refinement Chat - Persistent across Diagrams and Summary */}
+        {/* Right-hand Chat Panel — visible on Diagrams and Summary tabs */}
         {(activeTab === 'diagrams' || activeTab === 'summary') && (
            <div className="w-96 flex flex-col bg-white border-l border-slate-200">
-              <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-                <h3 className="font-semibold text-slate-900">Refinement Chat</h3>
+              {/* Mode toggle header */}
+              <div className="p-3 border-b border-slate-200 flex items-center gap-2">
+                <button
+                  onClick={() => setChatMode('refinement')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-lg transition-all",
+                    chatMode === 'refinement'
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-slate-500 hover:bg-slate-100"
+                  )}
+                >
+                  <Send size={11} /> Refinement
+                </button>
+                <button
+                  onClick={() => setChatMode('context')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-lg transition-all",
+                    chatMode === 'context'
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "text-slate-500 hover:bg-slate-100"
+                  )}
+                >
+                  <BookOpen size={11} /> Context Q&A
+                </button>
               </div>
-              <div className="flex-1 p-4 overflow-auto space-y-4">
-                {(!activeTimestamp?.refinement_history || activeTimestamp.refinement_history.length === 0) ? (
-                  <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-700 max-w-[85%]">
-                    {activeTimestamp 
-                      ? "I've loaded the current architectural draft. I can refine the diagrams or summary based on your feedback." 
-                      : "Once you generate a milestone, I can help you refine it here."}
-                  </div>
-                ) : (
-                  activeTimestamp.refinement_history.map((msg, i) => (
-                    <div 
-                      key={i} 
-                      className={cn(
-                        "rounded-lg p-3 text-sm max-w-[90%] anim-in fade-in slide-in-from-bottom-1",
-                        msg.role === 'user' 
-                          ? "bg-blue-600 text-white ml-auto" 
-                          : "bg-slate-100 text-slate-700 mr-auto"
-                      )}
-                    >
-                      {msg.content}
-                    </div>
-                  ))
-                )}
-                {refining && (
-                  <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-500 mr-auto flex items-center gap-2">
-                    <Loader2 size={14} className="animate-spin" />
-                    Refining draft...
-                  </div>
-                )}
-              </div>
-              <div className="p-4 border-t border-slate-200 bg-slate-50">
-                <div className="relative">
-                  <input 
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
-                    disabled={!activeTimestamp || refining}
-                    className="w-full bg-white border border-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
-                    placeholder="Ask the agent to refine drafts..."
-                  />
-                  <button 
-                    onClick={handleRefine}
-                    disabled={!activeTimestamp || refining || !chatInput}
-                    className="absolute right-2 top-1.5 p-1 text-slate-400 hover:text-blue-600 disabled:opacity-30"
-                  >
-                    {refining ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-                  </button>
+
+              {chatMode === 'context' ? (
+                <div className="flex-1 overflow-hidden">
+                  {project ? (
+                    <ContextChat
+                      projectId={project.id}
+                      onSourceClick={(src) => {
+                        if (src.provider !== 'web_url') {
+                          // Open context viewer for non-URL sources
+                          setViewingContext({ ...src, content: '' })
+                        } else {
+                          window.open(src.name, '_blank')
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-slate-400 text-sm">Select a project first</div>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex-1 p-4 overflow-auto space-y-4">
+                    {(!activeTimestamp?.refinement_history || activeTimestamp.refinement_history.length === 0) ? (
+                      <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-700 max-w-[85%]">
+                        {activeTimestamp 
+                          ? "I've loaded the current architectural draft. I can refine the diagrams or summary based on your feedback." 
+                          : "Once you generate a milestone, I can help you refine it here."}
+                      </div>
+                    ) : (
+                      activeTimestamp.refinement_history.map((msg, i) => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "rounded-lg p-3 text-sm max-w-[90%] anim-in fade-in slide-in-from-bottom-1",
+                            msg.role === 'user' 
+                              ? "bg-blue-600 text-white ml-auto" 
+                              : "bg-slate-100 text-slate-700 mr-auto"
+                          )}
+                        >
+                          {msg.content}
+                        </div>
+                      ))
+                    )}
+                    {refining && (
+                      <div className="bg-slate-100 rounded-lg p-3 text-sm text-slate-500 mr-auto flex items-center gap-2">
+                        <Loader2 size={14} className="animate-spin" />
+                        Refining draft...
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 border-t border-slate-200 bg-slate-50">
+                    <div className="relative">
+                      <input 
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
+                        disabled={!activeTimestamp || refining}
+                        className="w-full bg-white border border-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+                        placeholder="Ask the agent to refine drafts..."
+                      />
+                      <button 
+                        onClick={handleRefine}
+                        disabled={!activeTimestamp || refining || !chatInput}
+                        className="absolute right-2 top-1.5 p-1 text-slate-400 hover:text-blue-600 disabled:opacity-30"
+                      >
+                        {refining ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
            </div>
         )}
       </div>

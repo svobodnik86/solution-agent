@@ -64,6 +64,25 @@ class ContextRenameRequest(BaseModel):
 class ChatRefinementRequest(BaseModel):
     feedback: str
 
+class ContextChatMessage(BaseModel):
+    role: str  # 'user' or 'assistant'
+    content: str
+
+class ContextChatSource(BaseModel):
+    id: str
+    name: str
+    provider: str
+    timestamp: str
+
+class ContextChatRequest(BaseModel):
+    question: str
+    history: List[ContextChatMessage] = []
+
+class ContextChatResponse(BaseModel):
+    answer: str
+    sources: List[ContextChatSource] = []
+    source_type: str  # 'context', 'llm', or 'web'
+
 class ProfileBase(BaseModel):
     name: str = "Default Profile"
     company_context: Optional[str] = None

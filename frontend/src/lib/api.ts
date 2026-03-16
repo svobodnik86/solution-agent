@@ -28,6 +28,19 @@ export interface Timestamp {
   created_at: string
 }
 
+export interface ContextChatSource {
+  id: string
+  name: string
+  provider: string
+  timestamp: string
+}
+
+export interface ContextChatResponse {
+  answer: string
+  sources: ContextChatSource[]
+  source_type: 'context' | 'llm' | 'web'
+}
+
 export const api = {
   async getProjects(): Promise<Project[]> {
     const res = await fetch(`${API_BASE_URL}/projects`)
@@ -173,6 +186,23 @@ export const api = {
     if (!res.ok) {
       const errorData = await res.json()
       throw new Error(errorData.detail || 'Connection test failed')
+    }
+    return res.json()
+  },
+
+  async contextChat(
+    projectId: number,
+    question: string,
+    history: { role: string; content: string }[]
+  ): Promise<ContextChatResponse> {
+    const res = await fetch(`${API_BASE_URL}/projects/${projectId}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, history })
+    })
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      throw new Error(errBody.detail || 'Context chat failed')
     }
     return res.json()
   }

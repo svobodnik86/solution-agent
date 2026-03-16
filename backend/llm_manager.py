@@ -140,6 +140,57 @@ class LLMManager:
         except Exception as e:
              raise RuntimeError(f"LLM Refinement Failed: {str(e)}")
 
+    async def context_chat(
+        self,
+        question: str,
+        context_chunks: List[str],
+        context_names: List[str],
+        history: List[Dict[str, str]],
+        model_override: str = None,
+        api_key_override: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Answers a user question grounded in the provided context chunks.
+        Returns the answer text and the source_type ('context' or 'llm').
+        """
+        model = model_override or self.default_model
+        has_context = bool(context_chunks)
+
+        if has_context:
+            context_block = "\n\n---\n\n".join(
+                f"[Source: {name}]\n{chunk}"
+                for name, chunk in zip(context_names, context_chunks)
+            )
+            system_prompt = f"""You are a knowledgeable assistant with access to a project's context documents.
+Answer the user's question using ONLY the provided context passages below.
+Always mention the source name when referencing a specific piece of information (e.g., "According to [Source: X]...").
+If the context does not contain enough information to answer, say so clearly — do not hallucinate.
+
+PROJECT CONTEXT:
+{context_block}
+"""
+        else:
+            system_prompt = """You are a knowledgeable assistant. No project context was found relevant to this question.
+Answer based on your general knowledge and clearly state that your answer is not based on the project's documents."""
+
+        messages = [{"role": "system", "content": system_prompt}]
+        for msg in history:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+        messages.append({"role": "user", "content": question})
+
+        try:
+            from litellm import acompletion
+            response = await acompletion(
+                model=model,
+                api_key=api_key_override,
+                messages=messages,
+            )
+            answer = response.choices[0].message.content
+            source_type = "context" if has_context else "llm"
+            return {"answer": answer, "source_type": source_type}
+        except Exception as e:
+            raise RuntimeError(f"LLM Context Chat Failed: {str(e)}")
+
     async def test_connection(self, model_override: str, api_key_override: str) -> bool:
         """
         Tests the connection to the LLM with the provided settings.

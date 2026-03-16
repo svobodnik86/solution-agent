@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-03-16
+
+### Added
+- **Context Q&A Chat:** New chat mode in the right-hand panel that answers questions grounded in project context with full source attribution. Shows `✅ From Project Context`, `🤖 LLM Knowledge`, or `🌐 Web URL` badges per response.
+- **URL Reading:** Paste any URL into the Context Q&A input and the agent will fetch and read the page content automatically.
+- **Source Chips:** Clickable source references below each Context Q&A answer linking back to the originating context document.
+
+### Changed
+- **Project Config tab:** Renamed "Settings" tab to "Project Config" to distinguish it from the global profile settings.
+
+### Fixed
+- Inline error messages for project name conflicts now surfaced directly in the New Project modal.
+- React hydration warning on `<body>` tag caused by browser extensions suppressed with `suppressHydrationWarning`.
+
 ## [0.4.0] - 2026-03-12
 
 ### Added

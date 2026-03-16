@@ -217,6 +217,23 @@ async def delete_project_context(project_id: int, doc_id: str, db: Session = Dep
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/projects/{project_id}/chat", response_model=schemas.ContextChatResponse)
+async def context_chat(
+    project_id: int,
+    request: schemas.ContextChatRequest,
+    db: Session = Depends(get_db)
+):
+    orchestrator = AgentOrchestrator(db)
+    try:
+        result = await orchestrator.context_chat(
+            project_id=project_id,
+            question=request.question,
+            history=[m.model_dump() for m in request.history]
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Context Chat Error: {str(e)}")
+
 @app.post("/projects/{project_id}/generate", response_model=schemas.Timestamp)
 async def generate_timestamp(
     project_id: int, 
