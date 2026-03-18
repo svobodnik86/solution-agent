@@ -223,8 +223,8 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {viewMode === 'structural' && (
-                <div className="px-4 py-2 bg-slate-50 flex items-center justify-center gap-2 border-t border-slate-200 shadow-inner">
+                {viewMode === 'structural' ? (
+                <div className="px-4 py-2 bg-slate-50 flex items-center justify-center gap-2 border-t border-slate-200 shadow-inner anim-in fade-in slide-in-from-top-1">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Depth:</span>
                     {['context', 'container', 'component'].map(level => (
                         <button 
@@ -236,7 +236,7 @@ export default function DashboardPage() {
                         </button>
                     ))}
                 </div>
-                )}
+                ) : null}
             </div>
 
             {viewMode === 'behavioral' ? (

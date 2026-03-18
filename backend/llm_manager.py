@@ -126,8 +126,13 @@ class LLMManager:
         Your generation of C4 or Sequence diagrams should depend entirely on what is requested in the feedback and what exists in the current state.
         """
 
+        print(f"LLM_DEBUG: Starting refine_draft with model: {model}")
+        print(f"LLM_DEBUG: Prompt length: {len(prompt)} chars")
+        print(f"LLM_DEBUG: Feedback length: {len(feedback)} chars")
+        
         try:
             from litellm import acompletion
+            print(f"LLM_DEBUG: Calling LLM API...")
             response = await acompletion(
                 model=model,
                 api_key=api_key_override,
@@ -136,9 +141,19 @@ class LLMManager:
             )
             
             content = response.choices[0].message.content
-            return json.loads(content)
+            print(f"LLM_DEBUG: LLM response received, length: {len(content)} chars")
+            print(f"LLM_DEBUG: First 500 chars of response: {content[:500]}")
+            
+            parsed = json.loads(content)
+            print(f"LLM_DEBUG: JSON parsed successfully, keys: {list(parsed.keys())}")
+            return parsed
+        except json.JSONDecodeError as e:
+            print(f"LLM_ERROR: JSON decode failed: {str(e)}")
+            print(f"LLM_ERROR: Response content (first 1000 chars): {content[:1000] if 'content' in locals() else 'No content'}")
+            raise RuntimeError(f"LLM returned invalid JSON: {str(e)}")
         except Exception as e:
-             raise RuntimeError(f"LLM Refinement Failed: {str(e)}")
+            print(f"LLM_ERROR: LLM call failed: {type(e).__name__}: {str(e)}")
+            raise RuntimeError(f"LLM Refinement Failed: {str(e)}")
 
     async def context_chat(
         self,
@@ -207,6 +222,53 @@ IMPORTANT: Respond with a JSON object in this exact format:
             return {"answer": answer, "source_type": source_type}
         except Exception as e:
             raise RuntimeError(f"LLM Context Chat Failed: {str(e)}")
+
+    async def fix_diagram(
+        self,
+        diagram: str,
+        field_name: str,
+        error_message: str,
+        model_override: str = None,
+        api_key_override: str = None,
+    ) -> str:
+        """
+        Asks the LLM to fix a Mermaid diagram that failed validation.
+        Returns the corrected diagram string (no markdown fences).
+        """
+        model = model_override or self.default_model
+        diagram_type_hints = {
+            "as_is_diagram": "Mermaid sequenceDiagram (AS-IS state)",
+            "to_be_diagram": "Mermaid sequenceDiagram (TO-BE state)",
+            "c4_context": "Mermaid C4Context diagram",
+            "c4_container": "Mermaid C4Container diagram",
+            "c4_component": "Mermaid C4Component diagram",
+        }
+        diagram_label = diagram_type_hints.get(field_name, "Mermaid diagram")
+
+        prompt = f"""You are an expert in Mermaid diagram syntax. Fix the following {diagram_label} that has a validation error.
+
+VALIDATION ERROR:
+{error_message}
+
+CURRENT DIAGRAM:
+{diagram}
+
+RULES:
+- Return ONLY the corrected Mermaid code. No markdown fences, no explanation.
+- The diagram must start with the correct keyword (e.g. sequenceDiagram, C4Context, C4Container, C4Component).
+- For C4 diagrams: every alias used in Rel() MUST be declared with System(), Container(), Component(), Person(), etc. before it appears in a Rel() statement.
+- Do not remove meaningful content — only fix syntax errors."""
+
+        try:
+            from litellm import acompletion
+            response = await acompletion(
+                model=model,
+                api_key=api_key_override,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            raise RuntimeError(f"LLM Diagram Fix Failed: {str(e)}")
 
     async def test_connection(self, model_override: str, api_key_override: str) -> bool:
         """

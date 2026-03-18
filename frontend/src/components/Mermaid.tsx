@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
-import { ZoomIn, X, Download } from 'lucide-react'
+import { ZoomIn, X, Download, RefreshCw, AlertTriangle, Check, Eye, Code } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 mermaid.initialize({
@@ -23,27 +23,163 @@ interface MermaidProps {
   id?: string
 }
 
+// Creative diagram fixer - handles common Mermaid errors
+function fixMermaidDiagram(diagram: string): string {
+  if (!diagram) return diagram
+  
+  let fixed = diagram
+  
+  // Fix: Handle C4 diagrams with architectural state updates in headers
+  // Also strip any leading whitespace/junk before the C4 keyword
+  fixed = fixed.replace(/[\s\S]*?(C4(Context|Container|Component|Deployment))(_?\w*)?/m, '$1')
+
+  // Fix: Convert "Title: Something" to "title Something"
+  fixed = fixed.replace(/^\s*Title:\s*(.*)$/im, 'title $1')
+
+  // Fix: Slashed participants Lambda1/Lambda2/Lambda3->>System 
+  // This handles any number of participants separated by slashes
+  fixed = fixed.replace(
+    /^(\s*)([A-Za-z0-9_.\/]+)([-\>]+)(.+)$/gm,
+    (match, indent, participants, arrow, rest) => {
+      if (participants.includes('/')) {
+        const parts = participants.split('/')
+        return parts.map((p: string) => `${indent}${p.trim()}${arrow}${rest}`).join('\n')
+      }
+      return match
+    }
+  )
+  
+  // Fix: Note over with too many participants (Mermaid only supports 2 max)
+  fixed = fixed.replace(
+    /Note over\s+([^:]+[,\s]*):\s*(.*)/g,
+    (match, participants, noteText) => {
+      // Clean up participants list
+      const cleanParticipants = participants
+        .replace(/\s+/g, '')
+        .replace(/,+/g, ',')
+        .replace(/,$/, '')
+      
+      // Split participants
+      const participantList = cleanParticipants.split(',').filter((p: string) => p)
+      
+      // If more than 2 participants, split into multiple Note statements
+      if (participantList.length > 2) {
+        // Create multiple Note statements for each pair or single notes
+        const notes: string[] = []
+        for (let i = 0; i < participantList.length; i += 2) {
+          const pair = participantList.slice(i, i + 2)
+          if (pair.length === 2) {
+            notes.push(`Note over ${pair[0]},${pair[1]}: ${noteText}`)
+          } else {
+            notes.push(`Note over ${pair[0]}: ${noteText}`)
+          }
+        }
+        return notes.join('\n    ')
+      }
+      
+      return `Note over ${cleanParticipants}: ${noteText}`
+    }
+  )
+  
+  // Fix: Note over with spaces around colon
+  fixed = fixed.replace(/Note over\s+([^:]+)\s*:\s*/g, 'Note over $1: ')
+  
+  // Ensure participant declarations exist for Note over references
+  const participantMatches = fixed.matchAll(/participant\s+([A-Za-z_][A-Za-z0-9_]*)/g)
+  const declaredParticipants = new Set<string>()
+  for (const match of participantMatches) {
+    declaredParticipants.add(match[1])
+  }
+  
+  // Add missing participant declarations for Note over references
+  const noteOverMatches = fixed.matchAll(/Note over\s+([^:]+):/g)
+  for (const match of noteOverMatches) {
+    const participants = match[1].split(',').map((p: string) => p.trim()).filter((p: string) => p)
+    for (const participant of participants) {
+      if (!declaredParticipants.has(participant) && participant) {
+        // Add a simple participant declaration
+        fixed = `participant ${participant}\n${fixed}`
+        declaredParticipants.add(participant)
+      }
+    }
+  }
+  
+  return fixed
+}
+
 export default function Mermaid({ chart, id = 'mermaid-chart' }: MermaidProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [svg, setSvg] = useState<string>('')
   const [isZoomed, setIsZoomed] = useState(false)
   const [fullSize, setFullSize] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fixedChart, setFixedChart] = useState<string>('')
+  const [showFixed, setShowFixed] = useState(false)
+  const [showRaw, setShowRaw] = useState(false)
+  const [fixAttempted, setFixAttempted] = useState(false)
+
+  const renderDiagram = async (diagramToRender: string, isFixedAttempt = false) => {
+    // Reset error at start of any render attempt
+    setError(null)
+    
+    const renderId = `mermaid-${id}-${Math.random().toString(36).substr(2, 9)}`
+    
+    try {
+      // Proactively fix the diagram if this is the first attempt
+      let finalDiagram = diagramToRender
+      let wasFixed = isFixedAttempt
+
+      if (!isFixedAttempt) {
+        const fixed = fixMermaidDiagram(diagramToRender)
+        if (fixed !== diagramToRender) {
+          finalDiagram = fixed
+          wasFixed = true
+          setFixedChart(fixed)
+        }
+      }
+
+      const { svg } = await mermaid.render(renderId, finalDiagram)
+      setSvg(svg)
+      if (wasFixed) {
+        setShowFixed(true)
+      }
+    } catch (err: any) {
+      console.error('Mermaid rendering failed:', err)
+      setError(err.message || 'Diagram syntax error')
+      
+      // If the proactively fixed version still failed, or we didn't fix it yet
+      // we already tried our best in the first pass if it was "fixable"
+      setFixAttempted(true)
+    }
+  }
 
   useEffect(() => {
-    if (containerRef.current && chart) {
-      setError(null)
-      // Mermaid requires a globally unique ID for its temporary rendering SVG, 
-      // otherwise switching tabs rapidly causes it to collide with un-garbage-collected DOM nodes.
-      const renderId = `mermaid-${id}-${Math.random().toString(36).substr(2, 9)}`
-      mermaid.render(renderId, chart).then(({ svg }) => {
-        setSvg(svg)
-      }).catch((err) => {
-        console.error('Mermaid rendering failed:', err)
-        setError(err.message || 'Diagram syntax error')
-      })
+    if (chart) {
+      setFixAttempted(false)
+      setShowFixed(false)
+      setShowRaw(false)
+      renderDiagram(chart)
     }
   }, [chart, id])
+
+  const handleTryFix = () => {
+    const fixed = fixMermaidDiagram(chart)
+    setFixAttempted(true)
+    renderDiagram(fixed, true)
+  }
+
+  const handleShowOriginal = () => {
+    setShowFixed(false)
+    setShowRaw(true)
+  }
+
+  const handleShowFixed = () => {
+    setShowRaw(false)
+    setShowFixed(true)
+    if (fixedChart) {
+      renderDiagram(fixedChart, true)
+    }
+  }
 
   const downloadSVG = () => {
     const blob = new Blob([svg], { type: 'image/svg+xml' })
@@ -59,12 +195,74 @@ export default function Mermaid({ chart, id = 'mermaid-chart' }: MermaidProps) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center p-6 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-mono">
-        <p className="font-bold mb-1 italic">Mermaid Syntax Error</p>
-        <p className="opacity-80 max-w-[300px] text-center">{error}</p>
-        <div className="mt-4 p-2 bg-white/50 rounded overflow-auto max-h-[150px] w-full">
-            <pre className="text-[10px] leading-tight text-slate-500">{chart}</pre>
+      <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-red-50 to-orange-50 border border-red-100 rounded-xl text-red-700">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+            <AlertTriangle size={20} />
+          </div>
+          <div>
+            <p className="font-bold text-sm">Diagram Syntax Issue</p>
+            <p className="text-xs text-red-500 opacity-80">Mermaid couldn't parse this diagram</p>
+          </div>
         </div>
+        
+        <div className="text-sm mb-4 max-w-md text-center">
+          {error.includes('Expecting') ? (
+            <p>There's a syntax error in the diagram. Common issues: multiple participants in one arrow, missing colons in notes, or undeclared participants.</p>
+          ) : (
+            <p>The diagram contains syntax that Mermaid can't understand.</p>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={handleTryFix}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 transition-all"
+          >
+            <RefreshCw size={14} />
+            Try to Fix Automatically
+          </button>
+          
+          <button
+            onClick={() => setShowRaw(!showRaw)}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all"
+          >
+            <Code size={14} />
+            {showRaw ? 'Hide' : 'Show'} Raw Diagram
+          </button>
+          
+          {showFixed && (
+            <button
+              onClick={handleShowFixed}
+              className="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all"
+            >
+              <Check size={14} />
+              Show Fixed Version
+            </button>
+          )}
+        </div>
+        
+        {showRaw && (
+          <div className="mt-4 p-4 bg-white/70 rounded-lg overflow-auto max-h-[200px] w-full border border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-slate-500 uppercase">Raw Diagram Code</span>
+              <span className="text-xs text-slate-400">{chart.length} chars</span>
+            </div>
+            <pre className="text-xs leading-tight text-slate-600 font-mono whitespace-pre-wrap">{chart}</pre>
+          </div>
+        )}
+        
+        {showFixed && fixedChart && (
+          <div className="mt-4 p-4 bg-green-50 rounded-lg overflow-auto max-h-[200px] w-full border border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-green-600 uppercase flex items-center gap-1">
+                <Check size={10} /> Fixed Version
+              </span>
+              <span className="text-xs text-green-500">Automatically corrected</span>
+            </div>
+            <pre className="text-xs leading-tight text-green-700 font-mono whitespace-pre-wrap">{fixedChart}</pre>
+          </div>
+        )}
       </div>
     )
   }

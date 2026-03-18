@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
 import uvicorn
+import json
 import models, schemas
 from database import engine, get_db, SessionLocal
 from agent import AgentOrchestrator
@@ -137,6 +138,14 @@ def update_project(project_id: int, project: schemas.ProjectUpdate, db: Session 
     
     db.commit()
     db.refresh(db_project)
+    
+    # Index working notes to vector DB if they were updated
+    if "working_notes" in update_data:
+        orchestrator = AgentOrchestrator(db)
+        # Run async indexing in background
+        import asyncio
+        asyncio.create_task(orchestrator.index_working_notes(project_id, update_data["working_notes"]))
+    
     return db_project
 
 @app.patch("/projects/{project_id}/settings", response_model=schemas.Project)
@@ -272,10 +281,25 @@ async def refine_timestamp(
 ):
     orchestrator = AgentOrchestrator(db)
     try:
+        print(f"DEBUG: Starting refinement for timestamp {timestamp_id}")
+        print(f"DEBUG: Feedback length: {len(request.feedback)} chars")
         updated_ts = await orchestrator.handle_refinement(timestamp_id, request.feedback)
+        print(f"DEBUG: Refinement completed successfully for timestamp {timestamp_id}")
         return updated_ts
     except ValueError as e:
+        print(f"ERROR: ValueError in refinement for timestamp {timestamp_id}: {str(e)}")
         raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        print(f"ERROR: RuntimeError in refinement for timestamp {timestamp_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"LLM processing failed: {str(e)}")
+    except json.JSONDecodeError as e:
+        print(f"ERROR: JSONDecodeError in refinement for timestamp {timestamp_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Invalid JSON response from LLM: {str(e)}")
+    except Exception as e:
+        print(f"ERROR: Unexpected error in refinement for timestamp {timestamp_id}: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Refinement failed: {type(e).__name__}: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

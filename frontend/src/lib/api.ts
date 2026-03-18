@@ -103,7 +103,17 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ feedback })
     })
-    if (!res.ok) throw new Error('Failed to refine timestamp')
+    if (!res.ok) {
+      let errorMessage = 'Failed to refine timestamp'
+      try {
+        const errorData = await res.json()
+        errorMessage = errorData.detail || errorMessage
+        console.error(`Refinement API Error (${res.status}):`, errorData)
+      } catch (e) {
+        console.error(`Refinement HTTP Error (${res.status}):`, await res.text().catch(() => 'No error details'))
+      }
+      throw new Error(errorMessage)
+    }
     return res.json()
   },
 

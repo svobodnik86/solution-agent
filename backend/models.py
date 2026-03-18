@@ -31,6 +31,7 @@ class Timestamp(Base):
     key_questions = Column(JSON, nullable=True)
     pending_tasks = Column(JSON, nullable=True)
     refinement_history = Column(JSON, nullable=True) # List of {"role": "user"|"assistant", "content": str}
+    last_diagram_refresh = Column(DateTime, nullable=True)  # Track when diagrams were last regenerated
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.UTC))
 
     project = relationship("Project", back_populates="timestamps")
