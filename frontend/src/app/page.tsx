@@ -12,7 +12,7 @@ import { ContextChat } from '@/components/ContextChat'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'diagrams' | 'summary' | 'workspace' | 'project-config'>('diagrams')
-  const { project, timestamps, setTimestamps, activeTimestamp, setActiveTimestamp, loading, setProject } = useProject()
+  const { project, timestamps, setTimestamps, activeTimestamp, setActiveTimestamp, loading, setProject, switchProject, projects } = useProject()
   const [chatMode, setChatMode] = useState<'refinement' | 'context'>('refinement')
   
   const [generating, setGenerating] = useState(false)
@@ -175,10 +175,17 @@ export default function DashboardPage() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Top Header */}
       <header className="h-16 px-8 flex items-center justify-between bg-white border-b border-slate-200">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-slate-500">Projects</span>
-          <ChevronRight size={14} className="text-slate-400" />
-          <span className="font-semibold text-slate-900">{project?.name || "No Project Selected"}</span>
+        <div className="flex items-center gap-2 text-sm bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 group hover:border-blue-400 transition-all">
+          <span className="text-slate-500 font-medium">Project:</span>
+          <select 
+            value={project?.id || ''} 
+            onChange={(e) => switchProject(Number(e.target.value))}
+            className="bg-transparent border-none focus:ring-0 font-bold text-slate-800 cursor-pointer outline-none hover:text-blue-600 transition-colors"
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
         </div>
         
         <div className="flex bg-slate-100 p-1 rounded-lg">
